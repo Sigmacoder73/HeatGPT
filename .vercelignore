@@ -1,0 +1,28 @@
+# Virtual Environment
+.venv/
+venv/
+ENV/
+env/
+
+# Python Cache & Databases
+__pycache__/
+*.pyc
+chroma_db*/
+.chroma/
+
+# Heavy / Non-Production Directories
+portfolio/
+chill-study-bot/
+scratch/
+.git/
+
+# Large Audio / Media Files
+*.mp3
+*.wav
+*.mp4
+*.xlsx
+*.ipynb
+
+# Unneeded files
+app.py
+Untitled13.ipynb
