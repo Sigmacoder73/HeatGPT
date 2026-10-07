@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HeatGPT - Intelligent AI Assistant & Study Hub</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Marked Markdown Parser -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
+    <!-- Highlight.js Syntax Highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/tokyo-night-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+    
+    <!-- KaTeX Math Rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+    
+    <!-- Cache-busted Stylesheet -->
+    <link rel="stylesheet" href="styles.css?v=9999">
+</head>
+<body>
+    <div class="app-layout">
+        <!-- Organized Sidebar Navigation -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <button type="button" class="new-chat-btn" id="newChatBtn" onclick="createNewSession()">
+                    <i class="fa-solid fa-plus"></i>
+                    <span>New chat</span>
+                </button>
+                <button type="button" class="icon-btn sidebar-toggle-btn" id="sidebarToggleClose" onclick="toggleSidebar()" title="Close Sidebar">
+                    <i class="fa-solid fa-indent"></i>
+                </button>
+            </div>
+
+            <!-- 🔵 AI Operating Mode Section with Glowing Accent -->
+            <div class="sidebar-section">
+                <label class="section-label"><i class="fa-solid fa-sliders" style="color: #f97316;"></i> Operating Mode</label>
+                <div class="mode-switcher">
+                    <button type="button" class="mode-btn active" id="modeGeneralBtn" onclick="setMode('general')">
+                        <i class="fa-solid fa-fire-flame-curved" style="color: #f97316;"></i>
+                        <span>General AI</span>
+                    </button>
+                    <button type="button" class="mode-btn" id="modeRagBtn" onclick="setMode('rag')">
+                        <i class="fa-solid fa-database" style="color: #38bdf8;"></i>
+                        <span>Local RAG</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Redesigned AI Engine Model Selection -->
+            <div class="sidebar-section">
+                <label class="section-label" for="modelSelect"><i class="fa-solid fa-microchip" style="color: #f97316;"></i> AI Engine Model</label>
+                <div class="custom-select-wrapper">
+                    <select id="modelSelect" class="custom-select" onchange="setMode(window.activeMode)">
+                        <option value="gemini-3.5-flash" selected>✨ Gemini 3.5 Flash (Ultra-Fast Engine)</option>
+                        <option value="gemini-3.6-flash">⚡ Gemini 3.6 Flash (High Intelligence)</option>
+                        <option value="gemini-3.7-flash">🧠 Gemini 3.7 Flash (Next-Gen Gemini)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Redesigned Assistant Persona Selection -->
+            <div class="sidebar-section">
+                <label class="section-label" for="personaSelect"><i class="fa-solid fa-user-astronaut" style="color: #38bdf8;"></i> Assistant Persona</label>
+                <div class="custom-select-wrapper">
+                    <select id="personaSelect" class="custom-select">
+                        <option value="study">📚 Chill Study & Homework Tutor</option>
+                        <option value="default">🔥 Helpful & Chill Assistant (HeatGPT)</option>
+                        <option value="coder">💻 Expert Software Engineer</option>
+                        <option value="writer">✍️ Creative Content Writer</option>
+                        <option value="concise">⚡ Concise Technical Analyst</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- 🎙️ AI PODCAST & STUDY HUB -->
+            <div class="sidebar-section">
+                <label class="section-label"><i class="fa-solid fa-podcast" style="color: #ef4444;"></i> Gemini Media & Study</label>
+
+                <!-- TASK NOTER BUTTON IN SIDEBAR -->
+                <button type="button" class="study-tools-btn" id="openTaskBtn" onclick="openTaskModal()" style="background: linear-gradient(135deg, rgba(250, 204, 21, 0.18), rgba(249, 115, 22, 0.18)); border-color: rgba(250, 204, 21, 0.45); color: #facc15; margin-bottom: 6px;">
+                    <i class="fa-solid fa-list-check"></i>
+                    <span>📋 Task Noter & Manager</span>
+                </button>
+                
+                <!-- FOCUS MODE BUTTON IN SIDEBAR -->
+                <button type="button" class="study-tools-btn" id="openFocusBtn" onclick="openFocusModal()" style="background: linear-gradient(135deg, rgba(56, 189, 248, 0.18), rgba(168, 85, 247, 0.18)); border-color: rgba(56, 189, 248, 0.45); color: #38bdf8; margin-bottom: 6px;">
+                    <i class="fa-solid fa-stopwatch"></i>
+                    <span>⏱️ Focus Mode & Timer</span>
+                </button>
+
+                <!-- AI PODCAST GENERATOR BUTTON -->
+                <button type="button" class="study-tools-btn" id="openPodcastBtn" onclick="openPodcastModal()" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.18), rgba(249, 115, 22, 0.18)); border-color: rgba(16, 185, 129, 0.45); color: #10b981; margin-bottom: 6px;">
+                    <i class="fa-solid fa-podcast"></i>
+                    <span>🎙️ AI Podcast Generator</span>
+                </button>
+
+                <button type="button" class="study-tools-btn" id="openFlashcardsBtn" onclick="openFlashcardsModal()" style="margin-bottom: 6px;">
+                    <i class="fa-solid fa-layer-group"></i>
+                    <span>🎴 3D Flashcards Deck</span>
+                </button>
+                <button type="button" class="study-tools-btn" id="openQuizBtn" onclick="openQuizModal()" style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(249, 115, 22, 0.15)); border-color: rgba(239, 68, 68, 0.4); color: #ef4444;">
+                    <i class="fa-solid fa-clipboard-question"></i>
+                    <span>📝 Interactive Quiz Screen</span>
+                </button>
+            </div>
+
+            <!-- Conversation History List -->
+            <div class="sidebar-history-container">
+                <label class="section-label"><i class="fa-regular fa-comments"></i> Recent Conversations</label>
+                <div class="chat-history-list" id="chatHistoryList">
+                    <!-- Dynamic chat sessions render here -->
+                </div>
+            </div>
+
+            <!-- Sidebar Footer Settings -->
+            <div class="sidebar-footer">
+                <button type="button" class="footer-item-btn" id="openSettingsBtn" onclick="openSettingsModal()">
+                    <i class="fa-solid fa-gear"></i>
+                    <span>Settings & Voice Options</span>
+                </button>
+                <div class="user-profile">
+                    <div class="user-avatar" style="background: linear-gradient(135deg, #f97316, #ef4444);">H</div>
+                    <div class="user-info">
+                        <span class="user-name">HeatGPT User</span>
+                        <span class="user-tier" style="color: #f97316;">Gemini Pro Studio</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Chat Panel -->
+        <main class="main-content">
+            <!-- Header Bar -->
+            <header class="top-header">
+                <div class="top-header-left">
+                    <button type="button" class="icon-btn sidebar-toggle-btn" id="sidebarToggleOpen" onclick="toggleSidebar()" title="Toggle Sidebar (3 lines)">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                    <div class="model-badge" id="activeModelBadge">
+                        <i class="fa-solid fa-sparkles" style="color: #f97316;"></i>
+                        <span>Gemini 3.5 Flash</span>
+                    </div>
+                </div>
+                <div class="top-header-right">
+                    <!-- TASK NOTER BUTTON IN TOP HEADER -->
+                    <button type="button" class="action-top-btn" id="headerTaskBtn" onclick="openTaskModal()" title="Task Noter & Manager" style="color: #facc15; border-color: rgba(250, 204, 21, 0.45);">
+                        <i class="fa-solid fa-list-check"></i>
+                        <span>Tasks</span>
+                    </button>
+
+                    <!-- FOCUS MODE BUTTON IN TOP HEADER -->
+                    <button type="button" class="action-top-btn" id="headerFocusBtn" onclick="openFocusModal()" title="Focus Mode & Pomodoro Timer" style="color: #38bdf8; border-color: rgba(56, 189, 248, 0.45);">
+                        <i class="fa-solid fa-stopwatch"></i>
+                        <span>Focus</span>
+                    </button>
+
+                    <!-- AI PODCAST BUTTON IN TOP HEADER -->
+                    <button type="button" class="action-top-btn" id="headerPodcastBtn" onclick="openPodcastModal()" title="AI Podcast Studio" style="color: #10b981; border-color: rgba(16, 185, 129, 0.45);">
+                        <i class="fa-solid fa-podcast"></i>
+                        <span>Podcast</span>
+                    </button>
+
+                    <!-- Natural Voice Chat Mode Toggle Pill -->
+                    <button type="button" class="voice-chat-toggle-btn" id="voiceChatModeBtn" onclick="toggleVoiceChatMode()" title="Toggle Natural Auto-Read Voice Chat Mode">
+                        <i class="fa-solid fa-volume-high" id="voiceChatBtnIcon"></i>
+                        <span id="voiceChatBtnLabel">Voice</span>
+                    </button>
+
+                    <button type="button" class="action-top-btn" id="headerFlashcardsBtn" onclick="openFlashcardsModal()" title="3D Flashcards Deck" style="color: #f97316; border-color: rgba(249, 115, 22, 0.4);">
+                        <i class="fa-solid fa-layer-group"></i>
+                        <span>Flashcards</span>
+                    </button>
+                    <button type="button" class="action-top-btn" id="headerQuizBtn" onclick="openQuizModal()" title="Interactive Quiz Screen" style="color: #ef4444; border-color: rgba(239, 68, 68, 0.4);">
+                        <i class="fa-solid fa-clipboard-question"></i>
+                        <span>Quiz</span>
+                    </button>
+                    <button type="button" class="action-top-btn" id="clearCurrentChatBtn" onclick="clearCurrentChat()" title="Clear Current Chat Feed">
+                        <i class="fa-solid fa-trash-can"></i>
+                        <span>Clear</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Chat Viewport -->
+            <div class="chat-viewport" id="chatViewport">
+                <!-- Welcome View (Empty State) -->
+                <div class="welcome-container" id="welcomeContainer">
+                    <div class="welcome-icon" style="background: linear-gradient(135deg, #f97316, #ef4444); box-shadow: 0 0 30px rgba(249, 115, 22, 0.3);">
+                        <i class="fa-solid fa-fire-flame-curved"></i>
+                    </div>
+                    <h1 class="welcome-title">What can HeatGPT help you study or solve today? 😎✨</h1>
+                    <p class="welcome-subtitle">100% Powered by Gemini AI! Focus Mode Timer, MP3 Podcasts, Voice Chat, or Multimodal Quizzes!</p>
+
+                    <!-- Suggestion Chips Grid -->
+                    <div class="suggestion-grid">
+                        <div class="suggestion-card" id="cardQuickPhoto" onclick="insertPhotoPrompt()">
+                            <div class="card-icon" style="color: #38bdf8;"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+                            <div class="card-title">🖼️ AI Photo Studio</div>
+                            <div class="card-desc">Generate HD photos, art & realistic images</div>
+                        </div>
+                        <div class="suggestion-card" id="cardQuickVideo" onclick="insertVideoPrompt()">
+                            <div class="card-icon" style="color: #a855f7;"><i class="fa-solid fa-film"></i></div>
+                            <div class="card-title">🎬 AI Video Generator</div>
+                            <div class="card-desc">Generate HD MP4 video clips & animations</div>
+                        </div>
+                        <div class="suggestion-card" id="cardQuickFocus" onclick="openFocusModal()">
+                            <div class="card-icon" style="color: #38bdf8;"><i class="fa-solid fa-stopwatch"></i></div>
+                            <div class="card-title">⏱️ Focus Mode & Pomodoro</div>
+                            <div class="card-desc">Custom timer & distraction-free job focus</div>
+                        </div>
+                        <div class="suggestion-card" id="cardQuickPodcast" onclick="openPodcastModal()">
+                            <div class="card-icon" style="color: #10b981;"><i class="fa-solid fa-podcast"></i></div>
+                            <div class="card-title">🎙️ AI Podcast Generator (MP3 Download)</div>
+                            <div class="card-desc">Co-Hosts Alex & Taylor MP3 Audio Episode</div>
+                        </div>
+                        <div class="suggestion-card" id="cardQuickFlashcards" onclick="openFlashcardsModal()">
+                            <div class="card-icon" style="color: #f97316;"><i class="fa-solid fa-layer-group"></i></div>
+                            <div class="card-title">🎴 3D Flashcards Deck</div>
+                            <div class="card-desc">Interactive 3D flip card deck</div>
+                        </div>
+                        <div class="suggestion-card" id="cardQuickQuiz" onclick="openQuizModal()">
+                            <div class="card-icon" style="color: #ef4444;"><i class="fa-solid fa-clipboard-question"></i></div>
+                            <div class="card-title">📝 Quiz from Image or Topic</div>
+                            <div class="card-desc">Upload diagrams, notes or textbook images</div>
+                        </div>
+                        <div class="suggestion-card" id="cardQuickTasks" onclick="openTaskModal()">
+                            <div class="card-icon" style="color: #facc15;"><i class="fa-solid fa-list-check"></i></div>
+                            <div class="card-title">📋 Task Noter & AI Manager</div>
+                            <div class="card-desc">Note tasks, check 1-by-1 & get AI guidance</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chat Feed Container -->
+                <div class="chat-feed" id="chatFeed">
+                    <!-- Dynamic Messages Inserted Here -->
+                </div>
+            </div>
+
+            <!-- Floating Input Bar Container -->
+            <div class="input-container-wrapper">
+                <div class="input-container" id="inputContainerBox">
+                    <!-- Active Research Mode Banner Indicator -->
+                    <div class="research-active-banner" id="researchActiveBanner" style="display: none;">
+                        <i class="fa-solid fa-globe fa-spin" style="color: #f97316;"></i>
+                        <span>🌐 <strong>Research Mode Active</strong> — HeatGPT will search live websites online & analyze URLs!</span>
+                    </div>
+
+                    <!-- ATTACHMENT PREVIEW CHIPS CONTAINER -->
+                    <div class="attachment-preview-container" id="attachmentPreviewContainer" style="display: none;">
+                        <!-- Dynamic Thumbnail Chips Inserted Here -->
+                    </div>
+
+                    <!-- FAIL-SAFE TEXTAREA -->
+                    <textarea 
+                        id="chatInput" 
+                        class="chat-textarea" 
+                        placeholder="Ask HeatGPT anything, generate photos/videos, or attach files..." 
+                        rows="1"
+                        onkeydown="if(event.key==='Enter' && !event.shiftKey){ event.preventDefault(); sendMessage(); }"
+                    ></textarea>
+                    
+                    <div class="input-actions-bar">
+                        <div class="input-left-tools">
+                            <!-- FILE / IMAGE UPLOAD BUTTON FOR CHATBOT -->
+                            <button type="button" class="tool-btn" id="attachFileBtn" onclick="triggerFileSelect()" title="Attach image or document (PNG, JPG, PDF, TXT, PY, CSV, etc.)">
+                                <i class="fa-solid fa-paperclip" style="font-size: 1.1rem; color: #f97316;"></i>
+                            </button>
+
+                            <!-- AI PHOTO GENERATION QUICK BUTTON -->
+                            <button type="button" class="tool-btn" id="photoGenBtn" onclick="insertPhotoPrompt()" title="Generate AI Photo / Image">
+                                <i class="fa-solid fa-image" style="font-size: 1.1rem; color: #38bdf8;"></i>
+                            </button>
+
+                            <!-- AI VIDEO GENERATION QUICK BUTTON -->
+                            <button type="button" class="tool-btn" id="videoGenBtn" onclick="insertVideoPrompt()" title="Generate AI Video MP4 Clip">
+                                <i class="fa-solid fa-film" style="font-size: 1.1rem; color: #a855f7;"></i>
+                            </button>
+
+                            <!-- TASK NOTER QUICK BUTTON -->
+                            <button type="button" class="tool-btn" id="taskQuickBtn" onclick="openTaskModal()" title="Task Noter & Manager (Check tasks 1-by-1)">
+                                <i class="fa-solid fa-list-check" style="font-size: 1.1rem; color: #facc15;"></i>
+                            </button>
+
+                            <!-- HIDDEN FILE INPUT FOR CHATBOT -->
+                            <input type="file" id="fileInput" accept="image/*,.pdf,.txt,.md,.py,.json,.csv,.js,.html,.css,.doc,.docx" multiple style="display:none;" onchange="handleFileSelect(event)">
+
+                            <!-- VOICE DICTATION (SPEECH TO TEXT) -->
+                            <button type="button" class="tool-btn" id="voiceInputBtn" title="Voice Dictation (Speech to Text)">
+                                <i class="fa-solid fa-microphone"></i>
+                            </button>
+                            
+                            <!-- RESEARCH MODE TOGGLE BUTTON -->
+                            <button type="button" class="research-toggle-btn" id="researchModeBtn" onclick="toggleResearchMode()" title="Toggle Live Web Research Mode">
+                                <i class="fa-solid fa-globe" id="researchBtnIcon"></i>
+                                <span id="researchBtnLabel">Research Mode: <strong>OFF</strong></span>
+                            </button>
+                        </div>
+                        <div class="input-right-tools">
+                            <!-- ALWAYS ENABLED SEND BUTTON -->
+                            <button type="button" class="send-btn" id="sendBtn" onclick="sendMessage()" title="Send message" style="background-color: #f97316;">
+                                <i class="fa-solid fa-arrow-up"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="input-disclaimer" id="inputDisclaimerText">
+                    HeatGPT powered by Gemini AI. AI Photo & Video Generator, Focus Mode & Voice Chat enabled!
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- ⏱️ FOCUS MODE CONFIGURATION MODAL -->
+    <div class="modal-overlay" id="focusConfigModal">
+        <div class="modal-card study-modal-card" style="border-color: rgba(56, 189, 248, 0.5);">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-stopwatch" style="color: #38bdf8;"></i> Focus Mode & Pomodoro Timer</h3>
+                <button type="button" class="modal-close" onclick="closeFocusModal()">&times;</button>
+            </div>
+            <div class="form-group">
+                <label for="focusJobGoal">Focus Job / Objective</label>
+                <input type="text" id="focusJobGoal" class="form-input" placeholder="e.g. Finish Math Homework, Write Python Server, Study Chemistry">
+            </div>
+            <div class="form-group">
+                <label for="focusPresetSelect">Timer Duration Preset</label>
+                <select id="focusPresetSelect" class="custom-select" onchange="toggleCustomFocusMinutes()">
+                    <option value="15">⚡ Quick Sprint (15 minutes)</option>
+                    <option value="25" selected>🎯 Classic Pomodoro (25 minutes)</option>
+                    <option value="45">🧠 Deep Work Session (45 minutes)</option>
+                    <option value="60">🚀 Power Hour (60 minutes)</option>
+                    <option value="custom">⏳ Custom Duration...</option>
+                </select>
+            </div>
+            <div class="form-group" id="customFocusGroup" style="display: none;">
+                <label for="customFocusMinutes">Custom Minutes (1 - 180 mins)</label>
+                <input type="number" id="customFocusMinutes" class="form-input" value="30" min="1" max="180">
+            </div>
+            <div class="form-group">
+                <label for="focusSoundSelect">Ambient Focus Sound</label>
+                <select id="focusSoundSelect" class="custom-select">
+                    <option value="white" selected>🎧 Crisp Pure White Noise</option>
+                    <option value="rain">🌧️ Soft Cozy Rain & Thunder</option>
+                    <option value="lofi">🎵 Warm Lo-Fi Ambient Chords</option>
+                    <option value="waves">🌊 Rhythmic Ocean Shore Waves</option>
+                    <option value="silent">🤫 Silent Focus (Deep Silence)</option>
+                </select>
+            </div>
+            <button type="button" class="btn btn-primary btn-block" onclick="startFocusSession()" style="background: linear-gradient(135deg, #38bdf8, #a855f7); margin-top: 10px; font-size: 1rem; padding: 12px; border: none; box-shadow: 0 4px 18px rgba(56, 189, 248, 0.4);">
+                🚀 Start Focus Session
+            </button>
+        </div>
+    </div>
+
+    <!-- 🌟 FULL-SCREEN IMMERSIVE FOCUS WORKSPACE OVERLAY -->
+    <div class="focus-overlay" id="focusOverlay">
+        <div class="focus-header-bar">
+            <div class="focus-job-badge" id="focusJobBadgeDisplay">
+                <i class="fa-solid fa-bullseye"></i>
+                <span id="focusJobBadgeText">Job: Deep Work Focus</span>
+            </div>
+            <button type="button" class="focus-exit-btn" onclick="exitFocusSession()">
+                <i class="fa-solid fa-xmark"></i> Exit Focus Mode
+            </button>
+        </div>
+
+        <div class="focus-timer-centerpiece">
+            <div class="focus-ring-container">
+                <svg class="focus-svg-ring" viewBox="0 0 260 260">
+                    <defs>
+                        <linearGradient id="focusGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#38bdf8" />
+                            <stop offset="100%" stop-color="#a855f7" />
+                        </linearGradient>
+                    </defs>
+                    <circle class="focus-svg-circle-bg" cx="130" cy="130" r="120"></circle>
+                    <circle class="focus-svg-circle-progress" id="focusCircleProgress" cx="130" cy="130" r="120"></circle>
+                </svg>
+
+                <div class="focus-digital-clock">
+                    <div class="focus-clock-digits" id="focusClockDigits">25:00</div>
+                    <div class="focus-clock-label" id="focusClockStatus">Focusing</div>
+                </div>
+            </div>
+
+            <div class="focus-controls-bar">
+                <button type="button" class="focus-ctrl-sec-btn" onclick="resetFocusTimer()" title="Reset Timer">
+                    <i class="fa-solid fa-rotate-left"></i> Reset
+                </button>
+                <button type="button" class="focus-ctrl-main-btn" id="focusPlayPauseBtn" onclick="toggleFocusPause()" title="Play / Pause">
+                    <i class="fa-solid fa-pause"></i>
+                </button>
+                <button type="button" class="focus-ctrl-sec-btn" onclick="completeFocusSession()" title="Finish Early">
+                    <i class="fa-solid fa-circle-check"></i> Finish Job
+                </button>
+            </div>
+        </div>
+
+        <!-- HeatGPT AI Focus Companion Card -->
+        <div class="focus-ai-quote-card">
+            <div class="focus-ai-quote-text" id="focusAiQuoteText">
+                "Keep going! Stay locked into your job. You're building deep mastery! 🧠🔥"
+            </div>
+        </div>
+    </div>
+
+    <!-- 🎙️ AI PODCAST GENERATOR CONFIG MODAL -->
+    <div class="modal-overlay" id="podcastConfigModal">
+        <div class="modal-card study-modal-card" style="border-color: rgba(16, 185, 129, 0.5);">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-podcast" style="color: #10b981;"></i> Gemini AI Podcast Generator</h3>
+                <button type="button" class="modal-close" onclick="closePodcastModal()">&times;</button>
+            </div>
+            <div class="form-group">
+                <label for="podcastTopic">Podcast Topic or Source Material</label>
+                <input type="text" id="podcastTopic" class="form-input" placeholder="e.g. Quantum Computing, Black Holes, Machine Learning, World History, Python Best Practices">
+            </div>
+            <div class="form-row">
+                <div class="form-group flex-1">
+                    <label for="podcastFormat">Format & Hosts</label>
+                    <select id="podcastFormat" class="custom-select">
+                        <option value="dual_host" selected>🎙️ Co-Hosts Alex & Taylor (Dual Voice)</option>
+                        <option value="solo">📢 Solo Masterclass Host</option>
+                        <option value="interview">🔬 Host & Expert Guest Interview</option>
+                    </select>
+                </div>
+                <div class="form-group flex-1">
+                    <label for="podcastLength">Episode Length</label>
+                    <select id="podcastLength" class="custom-select">
+                        <option value="quick">⚡ Quick Summary (6 Turns)</option>
+                        <option value="standard" selected>🎧 Standard Deep Dive (10 Turns)</option>
+                        <option value="deep">📜 Comprehensive Episode (14 Turns)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="podcastTone">Tone & Vibe</label>
+                <select id="podcastTone" class="custom-select">
+                    <option value="chill" selected>😎 Chill & Friendly (HeatGPT Style)</option>
+                    <option value="academic">🎓 Academic & Deep Educational</option>
+                    <option value="energetic">🚀 Energetic & Tech Enthusiast</option>
+                </select>
+            </div>
+            <button type="button" class="btn btn-primary btn-block" id="generatePodcastBtn" onclick="generatePodcastEpisode()" style="background: linear-gradient(135deg, #10b981, #f97316); margin-top: 10px; font-size: 1rem; padding: 12px;">
+                🎙️ Generate High-Quality AI Podcast Episode
+            </button>
+        </div>
+    </div>
+
+    <!-- 🎧 HIGH QUALITY INTERACTIVE PODCAST PLAYER MODAL -->
+    <div class="modal-overlay" id="podcastPlayerModal">
+        <div class="modal-card podcast-player-card">
+            <div class="modal-header">
+                <div>
+                    <h3 id="podcastPlayerTitle"><i class="fa-solid fa-podcast" style="color: #10b981;"></i> AI Podcast Player</h3>
+                    <small id="podcastPlayerSubtitle" style="color: #94a3b8;">Episode Title</small>
+                </div>
+                <button type="button" class="modal-close" onclick="closePodcastPlayerModal()">&times;</button>
+            </div>
+
+            <!-- Loading State with Interactive Progress & Fast Launch -->
+            <div class="fc-loading-state" id="podcastLoadingState" style="flex-direction: column; align-items: center; justify-content: center; padding: 25px; text-align: center;">
+                <i class="fa-solid fa-podcast fa-bounce" style="font-size: 3rem; color: #10b981; margin-bottom: 15px;"></i>
+                <h4 style="color: #f8fafc; font-size: 1.1rem; margin-bottom: 8px;" id="podcastLoadingStatusTitle">Gemini AI is Writing Episode Script...</h4>
+                <p id="podcastLoadingSubText" style="color: #94a3b8; font-size: 0.9rem; max-width: 340px; line-height: 1.4; margin-bottom: 15px;">Setting up dual-host dialogue with Alex & Taylor 🎙️📻</p>
+                
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                    <button type="button" class="btn btn-secondary" onclick="closePodcastPlayerModal()" style="font-size: 0.85rem; padding: 7px 14px;">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="useInstantPodcastFallback()" style="font-size: 0.85rem; padding: 7px 14px; background: linear-gradient(135deg, #10b981, #f97316); border: none; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);">⚡ Instant Fast Launch</button>
+                </div>
+            </div>
+
+            <!-- Podcast Player Body -->
+            <div class="podcast-player-body" id="podcastPlayerBody" style="display: none;">
+                <!-- Host Badges & Visualizer Header -->
+                <div class="podcast-header-card">
+                    <div class="podcast-hosts-avatars">
+                        <div class="host-badge male"><i class="fa-solid fa-microphone-lines"></i> Alex (Host)</div>
+                        <div class="podcast-wave-bars" id="podcastWaveBars">
+                            <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+                        </div>
+                        <div class="host-badge female"><i class="fa-solid fa-headphones"></i> Taylor (Co-Host)</div>
+                    </div>
+                    <p class="podcast-desc-text" id="podcastDescText">Episode summary...</p>
+                </div>
+
+                <!-- Interactive Live Audio Teleprompter (Scrollable Transcript) -->
+                <div class="podcast-transcript-teleprompter" id="podcastTranscriptFeed">
+                    <!-- Dynamic Transcript Items Inserted Here -->
+                </div>
+
+                <!-- Audio Controls Bar with DOWNLOAD MP3 AUDIO BUTTON -->
+                <div class="podcast-audio-controls">
+                    <button type="button" class="podcast-ctrl-btn" onclick="podcastPrevLine()" title="Previous Turn"><i class="fa-solid fa-backward-step"></i></button>
+                    <button type="button" class="podcast-play-btn" id="podcastPlayPauseBtn" onclick="togglePodcastPlayback()" title="Play / Pause Podcast">
+                        <i class="fa-solid fa-play"></i>
+                    </button>
+                    <button type="button" class="podcast-ctrl-btn" onclick="podcastNextLine()" title="Next Turn"><i class="fa-solid fa-forward-step"></i></button>
+                    
+                    <button type="button" class="podcast-speed-btn" id="podcastSpeedBtn" onclick="cyclePodcastSpeed()" title="Playback Speed">1.0x</button>
+
+                    <!-- DOWNLOAD MP3 AUDIO FILE BUTTON -->
+                    <button type="button" class="podcast-download-btn" id="downloadAudioBtn" onclick="downloadPodcastAudio()" style="background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; padding: 7px 14px; border-radius: var(--radius-md); font-weight: 700; font-size: 0.85rem; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);">
+                        <i class="fa-solid fa-download"></i>
+                        <span>Download MP3</span>
+                    </button>
+
+                    <!-- DOWNLOAD TRANSCRIPT (.MD) BUTTON -->
+                    <button type="button" class="podcast-ctrl-btn" onclick="downloadPodcastTranscript()" title="Download Transcript Script (.md)">
+                        <i class="fa-solid fa-file-lines"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- STANDALONE QUIZ CONFIG SCREEN MODAL WITH IMAGE UPLOAD -->
+    <div class="modal-overlay" id="quizConfigModal">
+        <div class="modal-card study-modal-card" style="border-color: rgba(239, 68, 68, 0.4);">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-clipboard-question" style="color: #ef4444;"></i> Gemini Quiz Screen</h3>
+                <button type="button" class="modal-close" onclick="closeQuizModal()">&times;</button>
+            </div>
+
+            <!-- IMAGE UPLOAD BOX FOR QUIZ GENERATION -->
+            <div class="form-group" style="background-color: rgba(0,0,0,0.25); border: 1px dashed rgba(239, 68, 68, 0.4); padding: 12px; border-radius: var(--radius-md);">
+                <label style="color: #ef4444; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-image"></i>
+                    <span>Upload Image / Diagram / Notes for Quiz (Optional)</span>
+                </label>
+                <input type="file" id="quizImageInput" accept="image/*" class="form-input" style="padding: 6px;" onchange="handleQuizImageSelect(event)">
+                <div id="quizImagePreviewBox" style="display: none; margin-top: 8px; align-items: center; gap: 10px;">
+                    <img id="quizImageThumb" style="width: 48px; height: 48px; border-radius: 6px; object-fit: cover; border: 1px solid #ef4444;" alt="Quiz Source Image">
+                    <span id="quizImageName" style="font-size: 0.84rem; color: #f8fafc; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">image.png</span>
+                    <button type="button" onclick="clearQuizImage()" style="background: transparent; border: none; color: #ef4444; font-size: 1.2rem; cursor: pointer;">&times;</button>
+                </div>
+                <small class="form-help">Upload a textbook page, diagram, handwritten notes, or formula sheet to generate a quiz from it!</small>
+            </div>
+
+            <div class="form-group">
+                <label for="quizTopic">Quiz Subject / Topic</label>
+                <input type="text" id="quizTopic" class="form-input" placeholder="e.g. Organic Chemistry, Calculus Derivatives, Machine Learning">
+            </div>
+            <div class="form-group">
+                <label for="quizDifficulty">Difficulty Level (1-5)</label>
+                <select id="quizDifficulty" class="custom-select">
+                    <option value="Super Easy">1. Super Easy 🌱</option>
+                    <option value="Easy">2. Easy 😎</option>
+                    <option value="Intermediate" selected>3. Intermediate 🧠</option>
+                    <option value="Hard">4. Hard 🔥</option>
+                    <option value="Super Ultra Mega Hard">5. Super Ultra Mega Hard ⚡</option>
+                </select>
+            </div>
+            <div class="form-row">
+                <div class="form-group flex-1">
+                    <label for="quizMcq">MCQs Count</label>
+                    <input type="number" id="quizMcq" class="form-input" value="4" min="0" max="15">
+                </div>
+                <div class="form-group flex-1">
+                    <label for="quizFill">Fill in Blanks</label>
+                    <input type="number" id="quizFill" class="form-input" value="3" min="0" max="15">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group flex-1">
+                    <label for="quizShort">Short Questions</label>
+                    <input type="number" id="quizShort" class="form-input" value="2" min="0" max="10">
+                </div>
+                <div class="form-group flex-1">
+                    <label for="quizLong">Long Questions</label>
+                    <input type="number" id="quizLong" class="form-input" value="1" min="0" max="10">
+                </div>
+            </div>
+            <button type="button" class="btn btn-primary btn-block" id="generateQuizBtn" onclick="generateQuiz()" style="background: linear-gradient(135deg, #ef4444, #f97316); margin-top: 10px;">
+                🚀 Start Interactive Gemini Quiz
+            </button>
+        </div>
+    </div>
+
+    <!-- FLASHCARDS CONFIG MODAL -->
+    <div class="modal-overlay" id="flashcardsConfigModal">
+        <div class="modal-card study-modal-card">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-layer-group" style="color: #f97316;"></i> Gemini Flashcard Deck</h3>
+                <button type="button" class="modal-close" onclick="closeFlashcardsModal()">&times;</button>
+            </div>
+            <div class="form-group">
+                <label for="fcTopic">Subject or Topic to Study</label>
+                <input type="text" id="fcTopic" class="form-input" placeholder="e.g. Plant Biology, Photosynthesis, Python OOP, World History">
+            </div>
+            <div class="form-row">
+                <div class="form-group flex-1">
+                    <label for="fcCount">Number of Cards (1-20)</label>
+                    <input type="number" id="fcCount" class="form-input" value="5" min="1" max="20">
+                </div>
+                <div class="form-group flex-1">
+                    <label for="fcDifficulty">Difficulty Level (1-5)</label>
+                    <select id="fcDifficulty" class="custom-select">
+                        <option value="Super Easy">1. Super Easy 🌱</option>
+                        <option value="Easy">2. Easy 😎</option>
+                        <option value="Intermediate" selected>3. Intermediate 🧠</option>
+                        <option value="Hard">4. Hard 🔥</option>
+                        <option value="Super Ultra Mega Hard">5. Super Ultra Mega Hard ⚡</option>
+                    </select>
+                </div>
+            </div>
+            <button type="button" class="btn btn-primary btn-block" id="generateFlashcardsBtn" onclick="generateFlashcards()" style="background-color: #f97316; margin-top: 10px;">
+                ✨ Launch 3D Flip Flashcards Deck
+            </button>
+        </div>
+    </div>
+
+    <!-- INTERACTIVE 3D FLASHCARDS PLAYER MODAL -->
+    <div class="modal-overlay" id="interactiveFlashcardModal">
+        <div class="modal-card flashcard-player-card">
+            <div class="modal-header">
+                <div>
+                    <h3 id="playerDeckTitle"><i class="fa-solid fa-layer-group" style="color: #f97316;"></i> Flashcards Deck</h3>
+                    <small id="playerDeckSubtitle" style="color: #94a3b8;">Topic: General Study</small>
+                </div>
+                <button type="button" class="modal-close" onclick="closeFcPlayerModal()">&times;</button>
+            </div>
+
+            <!-- Loading Spinner State -->
+            <div class="fc-loading-state" id="fcLoadingState">
+                <i class="fa-solid fa-spinner fa-spin" style="font-size: 2.5rem; color: #f97316;"></i>
+                <p>Gemini AI is generating flashcards... 🧠✨</p>
+            </div>
+
+            <!-- Flashcard Player Body -->
+            <div class="fc-player-body" id="fcPlayerBody" style="display: none;">
+                <div class="flip-card" id="activeFlipCard" onclick="flipActiveCard()">
+                    <div class="flip-card-inner">
+                        <!-- FRONT SIDE -->
+                        <div class="flip-card-front">
+                            <div class="card-hint-badge" id="fcCardHint">CARD #1</div>
+                            <div class="card-main-text" id="fcQuestionText">Question text loading...</div>
+                            <div class="card-tap-instruction"><i class="fa-solid fa-hand-pointer"></i> Click card or Flip button to reveal answer</div>
+                        </div>
+
+                        <!-- BACK SIDE -->
+                        <div class="flip-card-back">
+                            <div class="card-hint-badge" style="color: #38bdf8;">ANSWER & DEFINITION 💡</div>
+                            <div class="card-main-text" id="fcOfficialAnswerText">Official Answer...</div>
+                            <div class="card-tap-instruction"><i class="fa-solid fa-rotate"></i> Click card to flip back to question</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Navigation Bar -->
+                <div class="flashcards-controls">
+                    <button type="button" class="fc-nav-btn" id="fcPrevBtn" onclick="prevFlashcard()"><i class="fa-solid fa-arrow-left"></i> Prev</button>
+                    <span class="fc-progress" id="fcProgressCounter">1 / 5</span>
+                    <button type="button" class="fc-nav-btn" id="fcFlipBtn" onclick="flipActiveCard()" style="background-color: var(--accent-orange); color: white;"><i class="fa-solid fa-rotate"></i> Flip Card</button>
+                    <button type="button" class="fc-nav-btn" id="fcNextBtn" onclick="nextFlashcard()">Next <i class="fa-solid fa-arrow-right"></i></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- STANDALONE INTERACTIVE QUIZ TEST SCREEN MODAL -->
+    <div class="modal-overlay" id="interactiveQuizModal">
+        <div class="modal-card quiz-player-card">
+            <div class="modal-header">
+                <div>
+                    <h3 id="quizTitleDisplay"><i class="fa-solid fa-clipboard-question" style="color: #ef4444;"></i> Interactive Quiz Test</h3>
+                    <small id="quizSubtitleDisplay" style="color: #94a3b8;">Topic: General</small>
+                </div>
+                <button type="button" class="modal-close" onclick="closeQuizPlayerModal()">&times;</button>
+            </div>
+
+            <!-- Quiz Loading State -->
+            <div class="fc-loading-state" id="quizLoadingState">
+                <i class="fa-solid fa-spinner fa-spin" style="font-size: 2.5rem; color: #ef4444;"></i>
+                <p>Gemini AI is generating your custom quiz... 📝✨</p>
+            </div>
+
+            <!-- Quiz Questions Form -->
+            <div class="quiz-player-body" id="quizPlayerBody" style="display: none;">
+                <div class="quiz-questions-scroll" id="quizQuestionsFeed">
+                    <!-- Dynamic Question Items Inserted Here -->
+                </div>
+
+                <div class="quiz-footer-actions">
+                    <button type="button" class="btn btn-primary btn-block" id="submitQuizForGradingBtn" onclick="submitQuizForGrading()" style="background: linear-gradient(135deg, #ef4444, #f97316); padding: 12px; font-size: 1rem;">
+                        🎓 Submit Quiz for Gemini AI Grading & Report
+                    </button>
+                </div>
+            </div>
+
+            <!-- AI Grade Report View -->
+            <div class="quiz-report-view" id="quizReportView" style="display: none;">
+                <div class="report-header-card">
+                    <div class="report-grade-badge" id="reportLetterGrade">A Grade 🏆</div>
+                    <div class="report-score-percent" id="reportScorePercent">90%</div>
+                    <p class="report-summary-text" id="reportSummaryText">Great job!</p>
+                </div>
+                <div class="report-details-feed" id="reportDetailsFeed">
+                    <!-- Per-Question Detailed Feedback -->
+                </div>
+                <button type="button" class="btn btn-secondary btn-block" onclick="closeQuizPlayerModal()" style="margin-top: 14px;">
+                    🔄 Close Quiz Screen
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 📋 INTERACTIVE TASK NOTER & MANAGER MODAL -->
+    <div class="modal-overlay" id="taskNoterModal">
+        <div class="modal-card task-noter-card">
+            <div class="modal-header">
+                <div>
+                    <h3 style="display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-list-check" style="color: #facc15;"></i> Task Noter & Manager</h3>
+                    <small style="color: #94a3b8;">Note your tasks, check off 1-by-1 with green checkmarks & get AI study help!</small>
+                </div>
+                <button type="button" class="modal-close" onclick="closeTaskModal()">&times;</button>
+            </div>
+
+            <!-- Sleek Real-Time Completion Progress Bar -->
+            <div class="task-progress-card">
+                <div class="task-progress-info">
+                    <span><i class="fa-solid fa-chart-line" style="color: #facc15;"></i> Completion Progress</span>
+                    <strong id="taskProgressPercentText">0%</strong>
+                </div>
+                <div class="task-progress-track">
+                    <div class="task-progress-fill" id="taskProgressFillBar" style="width: 0%;"></div>
+                </div>
+            </div>
+
+            <!-- Task Input Bar -->
+            <div class="task-input-bar">
+                <input type="text" id="newTaskTitleInput" class="form-input" placeholder="e.g. Solve Math Ex 3.2, Read History Chapter..." onkeydown="if(event.key==='Enter'){ addNewTask(); }">
+                <select id="newTaskPrioritySelect" class="custom-select" style="width: 140px;">
+                    <option value="high">🔴 High</option>
+                    <option value="medium" selected>🟡 Medium</option>
+                    <option value="low">🟢 Low</option>
+                </select>
+                <button type="button" class="btn btn-primary" onclick="addNewTask()" style="background: linear-gradient(135deg, #facc15, #f97316); color: #000; font-weight: 800; border: none; white-space: nowrap;">
+                    + Add Task
+                </button>
+            </div>
+
+            <!-- Filter Tabs -->
+            <div class="task-filter-tabs">
+                <button type="button" class="task-filter-tab active" id="taskFilterAll" onclick="setTaskFilter('all')">All Tasks (<span id="taskCountAll">0</span>)</button>
+                <button type="button" class="task-filter-tab" id="taskFilterPending" onclick="setTaskFilter('pending')">Pending ⏳ (<span id="taskCountPending">0</span>)</button>
+                <button type="button" class="task-filter-tab" id="taskFilterCompleted" onclick="setTaskFilter('completed')">Done ✅ (<span id="taskCountCompleted">0</span>)</button>
+            </div>
+
+            <!-- Task Items Feed -->
+            <div class="task-list-feed" id="taskListFeed">
+                <!-- Dynamic task cards render here with check icons -->
+            </div>
+
+            <!-- Task Actions Footer -->
+            <div style="display: flex; gap: 10px; margin-top: 16px; justify-content: space-between; align-items: center;">
+                <button type="button" class="btn btn-secondary" onclick="clearCompletedTasks()" style="font-size: 0.85rem; padding: 8px 14px; color: #cbd5e1;">
+                    🧹 Clear Completed Tasks
+                </button>
+                <button type="button" class="btn btn-primary" onclick="askAiToHelpWithTasks()" style="background: linear-gradient(135deg, #38bdf8, #a855f7); border: none; font-size: 0.9rem; font-weight: 700;">
+                    🤖 Ask AI to Help Me Finish Tasks
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settingsModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-sliders"></i> Settings & Voice Customization</h3>
+                <button type="button" class="modal-close" onclick="closeSettingsModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="apiKeyInput">Google Gemini API Key</label>
+                    <input type="password" id="apiKeyInput" class="form-input" placeholder="Enter your Gemini API key (Configured in server .env)">
+                    <small class="form-help">Saved automatically in your server configuration and local browser storage.</small>
+                </div>
+
+                <!-- Natural Voice Selection Options -->
+                <div class="form-group" style="margin-top: 10px;">
+                    <label for="voiceSelect">🎙️ Natural Voice Engine</label>
+                    <select id="voiceSelect" class="custom-select">
+                        <option value="">Auto-Detect Natural Voice (Google / Microsoft Natural)</option>
+                    </select>
+                    <small class="form-help">Select a natural human voice for Voice Chat mode.</small>
+                </div>
+
+                <div class="form-row" style="margin-top: 6px;">
+                    <div class="form-group flex-1">
+                        <label for="voiceSpeed">Speech Rate (Speed)</label>
+                        <input type="range" id="voiceSpeed" min="0.8" max="1.4" step="0.05" value="1.05" class="form-input">
+                    </div>
+                    <div class="form-group flex-1">
+                        <label for="voicePitch">Pitch (Warmth)</label>
+                        <input type="range" id="voicePitch" min="0.8" max="1.3" step="0.05" value="1.0" class="form-input">
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-top: 10px;">
+                    <label for="customSystemPromptInput">Custom System Instruction</label>
+                    <textarea id="customSystemPromptInput" class="form-input" rows="3" placeholder="You are HeatGPT, a super chill AI study buddy..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeSettingsModal()">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveSettings()" style="background-color: #f97316;">Save Settings</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cache-busted Script -->
+    <script src="app.js?v=9999"></script>
+</body>
+</html>

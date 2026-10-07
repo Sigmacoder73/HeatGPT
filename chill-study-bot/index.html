@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NOVA AI | General Purpose AI Assistant & Code Studio 🚀</title>
+    <!-- Modern Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Main CSS -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="dark-theme">
+    <div class="app-container">
+        
+        <!-- SIDEBAR NAVIGATION -->
+        <aside class="sidebar" id="appSidebar">
+            <div class="brand-header">
+                <div class="logo-box">
+                    <i class="fa-solid fa-robot logo-icon"></i>
+                </div>
+                <div class="brand-title">
+                    <h2>NOVA <span>AI</span></h2>
+                    <span class="tagline">ChatGPT Assistant ⚡</span>
+                </div>
+            </div>
+
+            <!-- Profile / Status Card -->
+            <div class="user-stats-card">
+                <div class="user-avatar">
+                    <i class="fa-solid fa-bolt"></i>
+                </div>
+                <div class="user-info">
+                    <span class="user-rank" id="userRank">NOVA 4.0 Omni 🚀</span>
+                    <div class="xp-bar-container">
+                        <div class="xp-bar-fill" id="xpBarFill" style="width: 100%;"></div>
+                    </div>
+                    <span class="xp-text" id="xpText">Ready to assist</span>
+                </div>
+                <div class="streak-badge" title="Status">
+                    <i class="fa-solid fa-check-circle streak-icon"></i>
+                    Active
+                </div>
+            </div>
+
+            <!-- Navigation Links -->
+            <nav class="nav-menu">
+                <button class="nav-item active" data-tab="chat-tab">
+                    <i class="fa-solid fa-comments"></i>
+                    <span>ChatGPT AI</span>
+                    <span class="nav-pill blue">v4.0</span>
+                </button>
+                <button class="nav-item" data-tab="ml-tab">
+                    <i class="fa-solid fa-code"></i>
+                    <span>Code & Automation Studio</span>
+                    <span class="nav-pill">Python</span>
+                </button>
+                <button class="nav-item" data-tab="pomodoro-tab">
+                    <i class="fa-solid fa-stopwatch"></i>
+                    <span>Focus Timer & Lo-Fi</span>
+                </button>
+            </nav>
+
+            <!-- Quick Category Shortcuts -->
+            <div class="subject-quick-select">
+                <div class="section-label">CATEGORIES</div>
+                <div class="subject-pills">
+                    <button class="subject-chip active" data-subject="all">⚡ General</button>
+                    <button class="subject-chip" data-subject="code">💻 Coding & Tech</button>
+                    <button class="subject-chip" data-subject="writing">✍️ Writing & Ideas</button>
+                    <button class="subject-chip" data-subject="science">🧪 Science & Math</button>
+                </div>
+            </div>
+
+            <!-- Sidebar Footer -->
+            <div class="sidebar-footer">
+                <button class="icon-btn" id="openSettingsBtn" title="Settings & API Key">
+                    <i class="fa-solid fa-gear"></i>
+                </button>
+                <div class="vibe-status">
+                    <span class="pulse-dot"></span>
+                    <span class="status-text">NOVA is Online 🟢</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT AREA -->
+        <main class="main-content">
+
+            <!-- TOP BAR -->
+            <header class="top-bar">
+                <div class="top-bar-left">
+                    <button class="mobile-menu-toggle" id="mobileMenuBtn">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                    <div class="current-mode-heading">
+                        <h1 id="modeTitle">NOVA AI Assistant 💬</h1>
+                        <p id="modeSubtitle">Your all-in-one AI assistant. Ask questions, generate code, write text, or brainstorm ideas!</p>
+                    </div>
+                </div>
+                <div class="top-bar-right">
+                    <div class="slang-level-container">
+                        <label for="slangSelect"><i class="fa-solid fa-sliders"></i> Response Style:</label>
+                        <select id="slangSelect" class="vibe-select">
+                            <option value="balanced" selected>ChatGPT Standard 🤖</option>
+                            <option value="high">Concise & Fast ⚡</option>
+                            <option value="academic">In-Depth & Technical 📚</option>
+                        </select>
+                    </div>
+                    <button class="btn-voice-toggle" id="globalTtsToggle" title="Toggle Voice Output">
+                        <i class="fa-solid fa-volume-xmark"></i> Voice OFF
+                    </button>
+                </div>
+            </header>
+
+            <!-- TAB 1: CHAT INTERFACE -->
+            <section class="tab-content active" id="chat-tab">
+                <div class="chat-wrapper">
+                    <!-- Quick Prompt Suggestions Bar -->
+                    <div class="prompt-chips-scroll">
+                        <span class="chips-title">💡 Try asking:</span>
+                        <button class="prompt-chip" data-prompt="Write a Python script to scrape news headlines 🐍">
+                            🐍 Python Web Scraper
+                        </button>
+                        <button class="prompt-chip" data-prompt="Explain how Neural Networks learn step-by-step 🧠">
+                            🧠 How Neural Nets Learn
+                        </button>
+                        <button class="prompt-chip" data-prompt="Help me outline a YouTube video script on AI automation 🎬">
+                            🎬 Brainstorm YouTube Script
+                        </button>
+                        <button class="prompt-chip" data-prompt="Write a polite email requesting a meeting schedule ✉️">
+                            ✉️ Draft Meeting Email
+                        </button>
+                        <button class="prompt-chip" data-prompt="Explain Quantum Computing in simple terms 🌌">
+                            🌌 Quantum Computing 101
+                        </button>
+                    </div>
+
+                    <!-- Chat Message Feed -->
+                    <div class="chat-messages" id="chatMessages">
+                        <!-- Initial Welcome Message from NOVA -->
+                        <div class="message-card nova-message">
+                            <div class="avatar nova-avatar">
+                                <i class="fa-solid fa-robot"></i>
+                            </div>
+                            <div class="message-body">
+                                <div class="message-header">
+                                    <span class="bot-name">NOVA</span>
+                                    <span class="bot-badge">ChatGPT AI</span>
+                                    <span class="msg-time">Just now</span>
+                                </div>
+                                <div class="message-text">
+                                    <p>Hello! I'm <strong>NOVA</strong>, your general-purpose AI assistant 🚀</p>
+                                    <p>I can help you write Python code, automate tasks, brainstorm creative ideas, analyze data, draft emails, answer science and math questions, or chat about any topic you'd like!</p>
+                                    <p>How can I assist you today?</p>
+                                </div>
+                                <div class="message-actions">
+                                    <button class="action-btn speaking-btn" onclick="app.speakMessage(this)"><i class="fa-solid fa-volume-high"></i> Listen</button>
+                                    <button class="action-btn" onclick="app.copyText(this)"><i class="fa-solid fa-copy"></i> Copy</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Chat Input Box -->
+                    <div class="chat-input-area">
+                        <div class="input-card">
+                            <button class="input-icon-btn" id="micBtn" title="Speech to Text">
+                                <i class="fa-solid fa-microphone"></i>
+                            </button>
+                            <textarea id="chatInput" placeholder="Message NOVA... (Press Enter to send)" rows="1"></textarea>
+                            <button class="send-btn" id="sendBtn">
+                                <span>Send</span>
+                                <i class="fa-solid fa-paper-plane"></i>
+                            </button>
+                        </div>
+                        <div class="input-footer">
+                            <span><i class="fa-solid fa-shield-halved"></i> Markdown & Code Highlighting Enabled</span>
+                            <span class="token-hint">Gemini 1.5 Flash Enabled ⚡</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 2: CODE & AUTOMATION STUDIO -->
+            <section class="tab-content" id="ml-tab">
+                <div class="ml-lab-container">
+                    <div class="lab-header">
+                        <h2><i class="fa-solid fa-code glow-icon"></i> Code & Automation Studio</h2>
+                        <p>Explore Python automation recipes & interactive neural network visualizations!</p>
+                    </div>
+
+                    <div class="lab-grid">
+                        <!-- Canvas Neural Network Visualizer Card -->
+                        <div class="glass-card visualizer-card">
+                            <div class="card-header">
+                                <h3><i class="fa-solid fa-diagram-project"></i> Live Neural Net Architecture Simulator</h3>
+                                <div class="net-controls">
+                                    <button class="btn-sm" id="btnPulseNet"><i class="fa-solid fa-play"></i> Pulse Forward Pass</button>
+                                    <button class="btn-sm outline" id="btnResetNet"><i class="fa-solid fa-rotate-left"></i> Reset</button>
+                                </div>
+                            </div>
+                            <div class="canvas-wrapper">
+                                <canvas id="nnCanvas" width="600" height="320"></canvas>
+                            </div>
+                            <div class="net-info-panel">
+                                <div class="stat-pill"><span>Input Layer:</span> <strong>3 Features</strong></div>
+                                <div class="stat-pill"><span>Hidden Layer:</span> <strong>4 Neurons (ReLU)</strong></div>
+                                <div class="stat-pill"><span>Output Layer:</span> <strong>Prediction Score</strong></div>
+                                <div class="stat-pill"><span>Loss:</span> <strong id="valLoss">0.042</strong></div>
+                            </div>
+                            <div class="explanation-box">
+                                <p><strong>💡 Neural Net Mechanics:</strong> Input feature signals travel through weighted hidden neuron connections, activating output nodes to produce predictions!</p>
+                            </div>
+                        </div>
+
+                        <!-- Python Automation Recipe Explorer -->
+                        <div class="glass-card recipes-card">
+                            <div class="card-header">
+                                <h3><i class="fa-solid fa-terminal"></i> Python Automation Recipes</h3>
+                            </div>
+                            <div class="recipe-selector">
+                                <button class="recipe-btn active" data-recipe="fileSorter">📂 Auto File Sorter</button>
+                                <button class="recipe-btn" data-recipe="homeworkBot">🤖 Task Reminder Bot</button>
+                                <button class="recipe-btn" data-recipe="webScraper">🌐 Web News Scraper</button>
+                                <button class="recipe-btn" data-recipe="miniML">📊 10-Line ML Classifier</button>
+                            </div>
+                            <div class="code-display-area">
+                                <div class="code-header">
+                                    <span id="recipeTitle">script.py</span>
+                                    <button class="btn-copy-code" id="btnCopyRecipe"><i class="fa-solid fa-copy"></i> Copy Code</button>
+                                </div>
+                                <pre><code id="recipeCode"># Select a recipe above!</code></pre>
+                            </div>
+                            <div class="recipe-explanation" id="recipeExplanation">
+                                Select an automation script above to learn how it works!
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 3: FOCUS TIMER & LO-FI VIBES -->
+            <section class="tab-content" id="pomodoro-tab">
+                <div class="pomodoro-container">
+                    <div class="pomo-card glass-card">
+                        <div class="pomo-header">
+                            <h2><i class="fa-solid fa-stopwatch glow-icon"></i> Focus Mode & Ambient Audio</h2>
+                            <p>25-minute focus session with Web Audio synthesized soundscapes! 🎧</p>
+                        </div>
+
+                        <div class="timer-display-ring">
+                            <svg class="progress-ring" width="260" height="260">
+                                <circle class="progress-ring-bg" stroke="rgba(255,255,255,0.05)" stroke-width="12" fill="transparent" r="110" cx="130" cy="130"/>
+                                <circle class="progress-ring-circle" id="pomoRing" stroke="#00f0ff" stroke-width="12" stroke-dasharray="691" stroke-dashoffset="0" fill="transparent" r="110" cx="130" cy="130"/>
+                            </svg>
+                            <div class="timer-text-box">
+                                <span class="timer-digits" id="pomoTimeDisplay">25:00</span>
+                                <span class="timer-mode-tag" id="pomoModeTag">FOCUS SESSION 🔒</span>
+                            </div>
+                        </div>
+
+                        <div class="pomo-buttons">
+                            <button class="btn-pomo start" id="startPomoBtn"><i class="fa-solid fa-play"></i> Start Timer</button>
+                            <button class="btn-pomo pause hidden" id="pausePomoBtn"><i class="fa-solid fa-pause"></i> Pause</button>
+                            <button class="btn-pomo reset" id="resetPomoBtn"><i class="fa-solid fa-rotate-left"></i> Reset</button>
+                        </div>
+
+                        <!-- Web Audio Synth Ambient Vibe Selector -->
+                        <div class="audio-vibe-box glass-card">
+                            <h3><i class="fa-solid fa-music"></i> Synthesized Ambient Focus Audio</h3>
+                            <p>Generates chill lo-fi soundscapes locally in your browser!</p>
+                            <div class="audio-controls">
+                                <button class="audio-btn" id="toggleAmbientBtn"><i class="fa-solid fa-headphones"></i> Play Ambient Synth</button>
+                                <div class="sound-mode-selector">
+                                    <button class="sound-chip active" data-sound="space">🌌 Space Drone</button>
+                                    <button class="sound-chip" data-sound="rain">🌧️ Cyber Rain</button>
+                                    <button class="sound-chip" data-sound="waves">🌊 Synth Waves</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="motivation-quote-box" id="motivationQuote">
+                            "The best way to predict the future is to build and automate it 🚀"
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- SETTINGS & GEMINI API MODAL -->
+    <div class="modal-overlay hidden" id="settingsModal">
+        <div class="modal-card glass-card">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-sliders"></i> NOVA AI Settings</h3>
+                <button class="close-modal-btn" id="closeSettingsBtn"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="setting-item">
+                    <label for="geminiApiKey">Google Gemini API Key (Optional):</label>
+                    <input type="password" id="geminiApiKey" placeholder="Enter Gemini API Key..." class="input-text">
+                    <span class="setting-help">If left empty, NOVA uses its built-in smart general AI engine!</span>
+                </div>
+                <div class="setting-item">
+                    <label>Speech Voice Speed:</label>
+                    <div class="slider-row">
+                        <span>Speed:</span>
+                        <input type="range" id="voiceSpeedRange" min="0.8" max="1.4" step="0.1" value="1.0">
+                    </div>
+                </div>
+                <div class="setting-item">
+                    <button class="btn-primary red-outline" id="resetXpBtn"><i class="fa-solid fa-trash"></i> Reset Local Data</button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-primary" id="saveSettingsBtn">Save & Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JS SCRIPTS -->
+    <script src="js/gamification.js"></script>
+    <script src="js/aiEngine.js"></script>
+    <script src="js/mlLab.js"></script>
+    <script src="js/studyTools.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

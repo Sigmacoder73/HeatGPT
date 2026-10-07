@@ -1,0 +1,41 @@
+# Virtual Environment
+.venv/
+venv/
+ENV/
+env/
+
+# Python Cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Environment Variables & Keys
+.env
+.env.local
+portfolio/config.js
+config.js
+
+# Database & Vector Store
+.chroma/
+chroma_db/
+chroma_db_*/
+*.db
+*.sqlite3
+
+# Audio / Generated Media / Binaries
+*.mp3
+*.wav
+*.mp4
+*.xlsx
+*.ipynb
+
+# Scratch & Logs
+scratch/
+*.log
+
+# OS & IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
