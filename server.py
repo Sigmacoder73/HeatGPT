@@ -996,13 +996,13 @@ async def serve_js(request):
     return FileResponse("app.js", media_type="application/javascript")
 
 async def serve_favicon_ico(request):
-    return FileResponse("favicon.ico")
+    return FileResponse("favicon.ico", media_type="image/x-icon", headers={"Cache-Control": "public, max-age=3600"})
 
 async def serve_favicon_png(request):
-    return FileResponse("favicon.png", media_type="image/png")
+    return FileResponse("favicon.png", media_type="image/png", headers={"Cache-Control": "public, max-age=3600"})
 
 async def serve_favicon_svg(request):
-    return FileResponse("favicon.svg", media_type="image/svg+xml")
+    return FileResponse("favicon.svg", media_type="image/svg+xml", headers={"Cache-Control": "public, max-age=3600"})
 
 routes = [
     Route("/", endpoint=serve_index),
