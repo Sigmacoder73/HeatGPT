@@ -995,10 +995,22 @@ async def serve_css(request):
 async def serve_js(request):
     return FileResponse("app.js", media_type="application/javascript")
 
+async def serve_favicon_ico(request):
+    return FileResponse("favicon.ico")
+
+async def serve_favicon_png(request):
+    return FileResponse("favicon.png", media_type="image/png")
+
+async def serve_favicon_svg(request):
+    return FileResponse("favicon.svg", media_type="image/svg+xml")
+
 routes = [
     Route("/", endpoint=serve_index),
     Route("/styles.css", endpoint=serve_css),
     Route("/app.js", endpoint=serve_js),
+    Route("/favicon.ico", endpoint=serve_favicon_ico),
+    Route("/favicon.png", endpoint=serve_favicon_png),
+    Route("/favicon.svg", endpoint=serve_favicon_svg),
     Route("/api/health", endpoint=api_health, methods=["GET"]),
     Route("/api/chat", endpoint=api_chat, methods=["POST"]),
     Route("/api/podcast_generate", endpoint=api_podcast_generate, methods=["POST"]),

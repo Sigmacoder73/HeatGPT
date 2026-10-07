@@ -25,6 +25,11 @@
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
     
+    <!-- Favicon Icons -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=1">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png?v=1">
+    <link rel="shortcut icon" href="/favicon.ico?v=1">
+    
     <!-- Cache-busted Stylesheet -->
     <link rel="stylesheet" href="styles.css?v=9999">
 </head>
@@ -32,14 +37,19 @@
     <div class="app-layout">
         <!-- Organized Sidebar Navigation -->
         <aside class="sidebar" id="sidebar">
-            <div class="sidebar-header">
-                <button type="button" class="new-chat-btn" id="newChatBtn" onclick="createNewSession()">
-                    <i class="fa-solid fa-plus"></i>
-                    <span>New chat</span>
-                </button>
-                <button type="button" class="icon-btn sidebar-toggle-btn" id="sidebarToggleClose" onclick="toggleSidebar()" title="Close Sidebar">
-                    <i class="fa-solid fa-indent"></i>
-                </button>
+            <div class="sidebar-header" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.08); margin-bottom: 10px;">
+                <div class="brand-title" style="display: flex; align-items: center; gap: 10px;">
+                    <img src="/favicon.svg" alt="HeatGPT Logo" style="width: 30px; height: 30px; filter: drop-shadow(0 0 10px rgba(249, 115, 22, 0.7));">
+                    <span style="font-weight: 800; font-size: 1.25rem; letter-spacing: -0.5px; background: linear-gradient(135deg, #f97316 0%, #ff8c00 50%, #ef4444 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">HeatGPT</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 4px;">
+                    <button type="button" class="new-chat-btn" id="newChatBtn" onclick="createNewSession()" title="New Chat">
+                        <i class="fa-solid fa-plus"></i>
+                    </button>
+                    <button type="button" class="icon-btn sidebar-toggle-btn" id="sidebarToggleClose" onclick="toggleSidebar()" title="Close Sidebar">
+                        <i class="fa-solid fa-indent"></i>
+                    </button>
+                </div>
             </div>
 
             <!-- 🔵 AI Operating Mode Section with Glowing Accent -->
@@ -196,8 +206,8 @@
             <div class="chat-viewport" id="chatViewport">
                 <!-- Welcome View (Empty State) -->
                 <div class="welcome-container" id="welcomeContainer">
-                    <div class="welcome-icon" style="background: linear-gradient(135deg, #f97316, #ef4444); box-shadow: 0 0 30px rgba(249, 115, 22, 0.3);">
-                        <i class="fa-solid fa-fire-flame-curved"></i>
+                    <div class="welcome-icon" style="background: transparent; box-shadow: 0 0 35px rgba(249, 115, 22, 0.4); display: flex; align-items: center; justify-content: center; width: 72px; height: 72px; border-radius: 20px; border: 1px solid rgba(249, 115, 22, 0.3);">
+                        <img src="/favicon.svg" alt="HeatGPT Logo" style="width: 54px; height: 54px; filter: drop-shadow(0 0 12px rgba(249, 115, 22, 0.8));">
                     </div>
                     <h1 class="welcome-title">What can HeatGPT help you study or solve today? 😎✨</h1>
                     <p class="welcome-subtitle">100% Powered by Gemini AI! Focus Mode Timer, MP3 Podcasts, Voice Chat, or Multimodal Quizzes!</p>
