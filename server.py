@@ -1301,10 +1301,20 @@ def sync_all_google_services_internal(store: Dict[str, Any]) -> Dict[str, Any]:
 async def api_google_auth_url(request):
     try:
         service = request.query_params.get("service", "all")
+        is_configured = bool(GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET and "your_google_client_id" not in GOOGLE_CLIENT_ID)
+
+        if not is_configured:
+            return JSONResponse({
+                "status": "ok",
+                "configured": False,
+                "demo_url": "/api/google/callback?code=demo_student_access",
+                "message": "Google Client ID not configured in .env. Falling back to demo mode."
+            })
+
         scope_str = " ".join(GOOGLE_SCOPES)
         params = {
             "response_type": "code",
-            "client_id": GOOGLE_CLIENT_ID or "demo_client_id",
+            "client_id": GOOGLE_CLIENT_ID,
             "redirect_uri": GOOGLE_REDIRECT_URI,
             "scope": scope_str,
             "access_type": "offline",
@@ -1315,7 +1325,7 @@ async def api_google_auth_url(request):
         return JSONResponse({
             "status": "ok",
             "auth_url": auth_url,
-            "configured": bool(GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET)
+            "configured": True
         })
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
@@ -1326,7 +1336,8 @@ async def api_google_callback(request):
         if not code:
             return JSONResponse({"error": "No authorization code provided."}, status_code=400)
 
-        if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
+        is_configured = bool(GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET and "your_google_client_id" not in GOOGLE_CLIENT_ID)
+        if not is_configured:
             # Fallback for local demo mode without active Google API secret key
             import time
             GLOBAL_ACADEMIC_STORE["tokens"] = {"access_token": "demo_token", "expires_at": time.time() + 3600}

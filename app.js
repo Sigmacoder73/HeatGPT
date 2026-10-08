@@ -2132,14 +2132,18 @@ window.connectGoogleService = async function(service) {
     try {
         const res = await fetch(`/api/google/auth_url?service=${encodeURIComponent(service)}`);
         const data = await res.json();
-        if (data.auth_url) {
+        if (data.configured && data.auth_url) {
+            window.location.href = data.auth_url;
+        } else if (data.demo_url) {
+            window.location.href = data.demo_url;
+        } else if (data.auth_url) {
             window.location.href = data.auth_url;
         } else {
-            alert("Could not generate Google authorization URL.");
+            window.location.href = "/api/google/callback?code=demo_student_access";
         }
     } catch (e) {
         console.error("Connect Google error:", e);
-        alert("Error connecting Google service: " + e.message);
+        window.location.href = "/api/google/callback?code=demo_student_access";
     }
 };
 

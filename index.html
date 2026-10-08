@@ -819,9 +819,20 @@
                 <button type="button" class="modal-close" onclick="closeSchoolConnectModal()">&times;</button>
             </div>
             <div class="modal-body" style="padding: 20px;">
-                <p style="color: #94a3b8; margin-bottom: 20px; font-size: 0.95rem;">
+                <p style="color: #94a3b8; margin-bottom: 16px; font-size: 0.95rem;">
                     Securely link your Google School services so HeatGPT can automatically organize your assignments, tests, deadlines, and teacher announcements into a personal AI study hub.
                 </p>
+
+                <!-- Instant Demo Mode Shortcut Banner -->
+                <div style="background: linear-gradient(135deg, rgba(56, 189, 248, 0.15), rgba(168, 85, 247, 0.15)); border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 12px; padding: 14px 18px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between;">
+                    <div>
+                        <strong style="color: #38bdf8; font-size: 0.95rem; display: block;"><i class="fa-solid fa-bolt" style="color: #facc15;"></i> Instant Test Connection (Demo Mode)</strong>
+                        <small style="color: #cbd5e1; font-size: 0.82rem;">Test the Academic Dashboard, AI Study Planner & Classroom AI features right now without setting up Google Cloud keys.</small>
+                    </div>
+                    <button type="button" class="btn btn-sm" onclick="window.location.href='/api/google/callback?code=demo_student_access'" style="background: linear-gradient(135deg, #38bdf8, #a855f7); color: #fff; font-weight: 800; border: none; border-radius: 8px; padding: 8px 16px; white-space: nowrap;">
+                        ⚡ Connect Demo Account
+                    </button>
+                </div>
 
                 <!-- Service Connection Cards Grid -->
                 <div class="services-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 20px;">
