@@ -22,6 +22,7 @@ chroma_db/
 chroma_db_*/
 *.db
 *.sqlite3
+google_academic_store.json
 
 # Audio / Generated Media / Binaries
 *.mp3

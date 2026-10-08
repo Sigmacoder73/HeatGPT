@@ -2084,3 +2084,311 @@ document.addEventListener('click', (e) => {
     }
 });
 
+/* ==========================================================================
+   🎓 GOOGLE SCHOOL INTEGRATION (Classroom, Calendar, Gmail & Dashboard)
+   ========================================================================== */
+
+window.openSchoolConnectModal = function() {
+    const modal = document.getElementById('schoolConnectModal');
+    if (modal) {
+        modal.classList.add('active');
+        window.loadGoogleStatus();
+    }
+};
+
+window.closeSchoolConnectModal = function() {
+    const modal = document.getElementById('schoolConnectModal');
+    if (modal) modal.classList.remove('active');
+};
+
+window.openAcademicDashboardModal = function() {
+    window.closeSchoolConnectModal();
+    const modal = document.getElementById('academicDashboardModal');
+    if (modal) {
+        modal.classList.add('active');
+        window.loadAcademicDashboard();
+    }
+};
+
+window.closeAcademicDashboardModal = function() {
+    const modal = document.getElementById('academicDashboardModal');
+    if (modal) modal.classList.remove('active');
+};
+
+window.openStudyPlannerModal = function() {
+    window.closeAcademicDashboardModal();
+    const modal = document.getElementById('studyPlannerModal');
+    if (modal) {
+        modal.classList.add('active');
+    }
+};
+
+window.closeStudyPlannerModal = function() {
+    const modal = document.getElementById('studyPlannerModal');
+    if (modal) modal.classList.remove('active');
+};
+
+window.connectGoogleService = async function(service) {
+    try {
+        const res = await fetch(`/api/google/auth_url?service=${encodeURIComponent(service)}`);
+        const data = await res.json();
+        if (data.auth_url) {
+            window.location.href = data.auth_url;
+        } else {
+            alert("Could not generate Google authorization URL.");
+        }
+    } catch (e) {
+        console.error("Connect Google error:", e);
+        alert("Error connecting Google service: " + e.message);
+    }
+};
+
+window.loadGoogleStatus = async function() {
+    try {
+        const res = await fetch('/api/google/status');
+        const data = await res.json();
+        
+        const badgeCr = document.getElementById('badgeClassroom');
+        const badgeCal = document.getElementById('badgeCalendar');
+        const badgeGm = document.getElementById('badgeGmail');
+        const lastSynced = document.getElementById('schoolLastSyncedText');
+
+        const connServices = data.connected_services || {};
+
+        if (badgeCr) {
+            if (connServices.google_classroom) {
+                badgeCr.innerText = '✓ Connected';
+                badgeCr.style.background = 'rgba(16, 185, 129, 0.2)';
+                badgeCr.style.color = '#34d399';
+                badgeCr.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+            } else {
+                badgeCr.innerText = 'Not Connected';
+                badgeCr.style.background = 'rgba(239, 68, 68, 0.2)';
+                badgeCr.style.color = '#f87171';
+                badgeCr.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+            }
+        }
+
+        if (badgeCal) {
+            if (connServices.google_calendar) {
+                badgeCal.innerText = '✓ Connected';
+                badgeCal.style.background = 'rgba(16, 185, 129, 0.2)';
+                badgeCal.style.color = '#34d399';
+                badgeCal.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+            } else {
+                badgeCal.innerText = 'Not Connected';
+                badgeCal.style.background = 'rgba(239, 68, 68, 0.2)';
+                badgeCal.style.color = '#f87171';
+                badgeCal.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+            }
+        }
+
+        if (badgeGm) {
+            if (connServices.gmail) {
+                badgeGm.innerText = '✓ Connected';
+                badgeGm.style.background = 'rgba(16, 185, 129, 0.2)';
+                badgeGm.style.color = '#34d399';
+                badgeGm.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+            } else {
+                badgeGm.innerText = 'Not Connected';
+                badgeGm.style.background = 'rgba(239, 68, 68, 0.2)';
+                badgeGm.style.color = '#f87171';
+                badgeGm.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+            }
+        }
+
+        if (lastSynced) {
+            lastSynced.innerText = data.last_synced || 'Never';
+        }
+    } catch (e) {
+        console.error("Load Google status error:", e);
+    }
+};
+
+window.syncGoogleSchoolData = async function() {
+    try {
+        const res = await fetch('/api/google/sync', { method: 'POST' });
+        const data = await res.json();
+        if (data.status === 'ok') {
+            window.loadGoogleStatus();
+            alert("✓ " + (data.message || "Google School data refreshed!"));
+        } else {
+            alert("Sync Error: " + (data.error || "Could not sync data. Existing data is still available."));
+        }
+    } catch (e) {
+        alert("Network error syncing Google School data: " + e.message);
+    }
+};
+
+window.disconnectGoogleServices = async function() {
+    if (!confirm("Are you sure you want to disconnect all Google School services? Stored academic items will be cleared.")) return;
+    try {
+        const res = await fetch('/api/google/disconnect', { method: 'POST' });
+        const data = await res.json();
+        if (data.status === 'ok') {
+            window.loadGoogleStatus();
+            alert("Disconnected all Google School services.");
+        }
+    } catch (e) {
+        alert("Error disconnecting: " + e.message);
+    }
+};
+
+window.loadAcademicDashboard = async function() {
+    try {
+        const res = await fetch('/api/school/dashboard');
+        const data = await res.json();
+
+        const studentName = document.getElementById('dashStudentName');
+        const completed = document.getElementById('dashCompletedCount');
+        const inProgress = document.getElementById('dashInProgressCount');
+        const overdue = document.getElementById('dashOverdueCount');
+        const workloadPct = document.getElementById('dashWorkloadPct');
+        const priorityFeed = document.getElementById('dashPriorityFeed');
+        const subjectFeed = document.getElementById('dashSubjectFeed');
+
+        if (studentName) studentName.innerText = (data.user_info && data.user_info.name) ? data.user_info.name : 'Student';
+        if (completed) completed.innerText = data.metrics.completed;
+        if (inProgress) inProgress.innerText = data.metrics.in_progress;
+        if (overdue) overdue.innerText = data.metrics.overdue;
+        if (workloadPct) workloadPct.innerText = `${data.metrics.workload_percentage}%`;
+
+        if (priorityFeed) {
+            const items = data.items || [];
+            const urgentItems = items.filter(i => i.status !== 'SUBMITTED' && i.status !== 'TURNED_IN');
+
+            if (urgentItems.length === 0) {
+                priorityFeed.innerHTML = `
+                    <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 8px; padding: 12px; color: #34d399; font-size: 0.88rem;">
+                        <i class="fa-solid fa-circle-check"></i> Great job! No urgent overdue or pending assignments.
+                    </div>
+                `;
+            } else {
+                let html = '';
+                urgentItems.forEach(item => {
+                    const dueFormatted = item.dueDate ? new Date(item.dueDate).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'No due date';
+                    const iconClass = item.source === 'google_classroom' ? 'fa-chalkboard-user' : (item.source === 'google_calendar' ? 'fa-calendar-days' : 'fa-envelope');
+                    const badgeColor = item.type === 'exam' ? '#ef4444' : '#f97316';
+
+                    html += `
+                        <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px; padding: 12px 14px; display: flex; align-items: center; justify-content: space-between;">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <i class="fa-solid ${iconClass}" style="color: ${badgeColor}; font-size: 1.2rem;"></i>
+                                <div>
+                                    <strong style="color: #f8fafc; font-size: 0.92rem; display: block;">${escapeHtml(item.title)}</strong>
+                                    <small style="color: #94a3b8; font-size: 0.78rem;">Subject: <span style="color: #38bdf8;">${escapeHtml(item.subject)}</span> | Due: ${dueFormatted}</small>
+                                </div>
+                            </div>
+                            <span style="font-size: 0.75rem; font-weight: 700; padding: 4px 10px; border-radius: 12px; background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3);">
+                                ${item.status || 'NOT SUBMITTED'}
+                            </span>
+                        </div>
+                    `;
+                });
+                priorityFeed.innerHTML = html;
+            }
+        }
+
+        if (subjectFeed) {
+            const stats = data.subject_stats || [];
+            if (stats.length === 0) {
+                subjectFeed.innerHTML = `<small style="color: #94a3b8;">No subject progress data available yet.</small>`;
+            } else {
+                let html = '';
+                stats.forEach(st => {
+                    html += `
+                        <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 8px; padding: 10px 14px;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 0.85rem;">
+                                <strong style="color: #f1f5f9;">${escapeHtml(st.subject)}</strong>
+                                <span style="color: #fb923c; font-weight: 700;">${st.completed}/${st.total} (${st.percentage}%)</span>
+                            </div>
+                            <div style="width: 100%; height: 8px; background: rgba(255, 255, 255, 0.1); border-radius: 4px; overflow: hidden;">
+                                <div style="width: ${st.percentage}%; height: 100%; background: linear-gradient(90deg, #f97316, #facc15); border-radius: 4px; transition: width 0.4s ease;"></div>
+                            </div>
+                        </div>
+                    `;
+                });
+                subjectFeed.innerHTML = html;
+            }
+        }
+
+    } catch (e) {
+        console.error("Load Academic Dashboard error:", e);
+    }
+};
+
+window.askAiAboutWorkload = function() {
+    window.closeAcademicDashboardModal();
+    const input = document.getElementById('chatInput');
+    if (input) {
+        input.value = "What should I work on today based on my current school workload, upcoming test dates, and deadlines?";
+        window.sendMessage();
+    }
+};
+
+window.generateAiStudyPlan = async function() {
+    const durationSelect = document.getElementById('studyDurationSelect');
+    const durationMins = durationSelect ? durationSelect.value : 60;
+    const outputContainer = document.getElementById('studyPlanOutputContainer');
+
+    try {
+        if (outputContainer) outputContainer.style.display = 'block';
+        const slotsDiv = document.getElementById('planTimeSlots');
+        if (slotsDiv) slotsDiv.innerHTML = `<div style="text-align: center; padding: 20px; color: #fb923c;"><i class="fa-solid fa-spinner fa-spin"></i> HeatGPT AI is generating your personalized study plan...</div>`;
+
+        const res = await fetch('/api/school/study_plan_generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ duration_minutes: durationMins })
+        });
+
+        const data = await res.json();
+        if (data.status === 'ok' && data.plan) {
+            const plan = data.plan;
+            const pTitle = document.getElementById('planTitle');
+            const pSummary = document.getElementById('planSummary');
+            const pTakeaway = document.getElementById('planTakeaway');
+
+            if (pTitle) pTitle.innerText = plan.title || `${durationMins}-Minute Power Study Session`;
+            if (pSummary) pSummary.innerText = plan.summary || 'Prioritizing your urgent Google Classroom assignments and upcoming test prep.';
+            if (pTakeaway) pTakeaway.innerText = plan.key_takeaway || 'Stay focused and take rest breaks to preserve retention.';
+
+            if (slotsDiv && plan.schedule) {
+                let html = '';
+                plan.schedule.forEach((slot, idx) => {
+                    const isBreak = (slot.subject || '').toLowerCase().includes('break');
+                    html += `
+                        <div style="background: ${isBreak ? 'rgba(56, 189, 248, 0.08)' : 'rgba(255, 255, 255, 0.03)'}; border: 1px solid ${isBreak ? 'rgba(56, 189, 248, 0.2)' : 'rgba(255, 255, 255, 0.08)'}; border-radius: 8px; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between;">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <input type="checkbox" id="planCheck_${idx}" style="width: 18px; height: 18px; accent-color: #f97316; cursor: pointer;">
+                                <div>
+                                    <strong style="color: #f8fafc; font-size: 0.9rem;">${escapeHtml(slot.task)}</strong>
+                                    <small style="color: #94a3b8; display: block; font-size: 0.78rem;">${escapeHtml(slot.description || '')}</small>
+                                </div>
+                            </div>
+                            <span style="font-size: 0.8rem; font-weight: 700; color: ${isBreak ? '#38bdf8' : '#fb923c'}; background: rgba(255, 255, 255, 0.05); padding: 4px 10px; border-radius: 12px;">
+                                ${escapeHtml(slot.time_slot || slot.duration)}
+                            </span>
+                        </div>
+                    `;
+                });
+                slotsDiv.innerHTML = html;
+            }
+        } else {
+            alert("Error generating study plan: " + (data.error || "Please try again."));
+        }
+    } catch (e) {
+        alert("Network error generating study plan: " + e.message);
+    }
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('google_connected')) {
+        setTimeout(() => {
+            window.openAcademicDashboardModal();
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }, 500);
+    }
+});
+

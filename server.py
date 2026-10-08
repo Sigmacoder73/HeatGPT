@@ -243,6 +243,11 @@ async def api_chat(request):
             task_context = f"\n\n📋 USER'S LIVE TASK LIST & STATUS:\n{tasks_formatted}\n\nAI INSTRUCTION: You have full real-time awareness of the user's task list above. When the user asks about their tasks, which ones are done, which ones are pending, or wants help finishing them, directly reference the specific tasks by name and state!"
             system_instruction += task_context
 
+        # 🎓 INJECT GOOGLE SCHOOL ACADEMIC WORKLOAD CONTEXT INTO AI CONTEXT
+        acad_context = get_academic_workload_context()
+        if acad_context:
+            system_instruction += f"\n\n{acad_context}"
+
         api_key = custom_api_key or os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
         candidate_models = ["gemini-3.5-flash", "gemini-3.6-flash", "gemini-3.7-flash"]
 
@@ -986,6 +991,599 @@ async def api_quick_study_generate(request):
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
 
+# ==========================================================================
+# 🎓 GOOGLE SCHOOL INTEGRATION (Classroom, Calendar, Gmail, OAuth & Context)
+# ==========================================================================
+GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "")
+GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "")
+GOOGLE_REDIRECT_URI = os.environ.get("GOOGLE_REDIRECT_URI", "http://localhost:8000/api/google/callback")
+
+GOOGLE_SCOPES = [
+    "openid",
+    "https://www.googleapis.com/auth/userinfo.email",
+    "https://www.googleapis.com/auth/userinfo.profile",
+    "https://www.googleapis.com/auth/classroom.courses.readonly",
+    "https://www.googleapis.com/auth/classroom.coursework.me.readonly",
+    "https://www.googleapis.com/auth/classroom.announcements.readonly",
+    "https://www.googleapis.com/auth/calendar.events.readonly",
+    "https://www.googleapis.com/auth/gmail.readonly"
+]
+
+STORE_FILE = "google_academic_store.json"
+
+def load_academic_store() -> Dict[str, Any]:
+    if os.path.exists(STORE_FILE):
+        try:
+            with open(STORE_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {
+        "user_info": {},
+        "connected_services": {
+            "google_classroom": False,
+            "google_calendar": False,
+            "gmail": False
+        },
+        "tokens": {},
+        "last_synced": None,
+        "items": []
+    }
+
+def save_academic_store(store: Dict[str, Any]):
+    try:
+        with open(STORE_FILE, "w", encoding="utf-8") as f:
+            json.dump(store, f, indent=2, ensure_ascii=False)
+    except Exception as e:
+        print(f"Error saving academic store: {e}")
+
+GLOBAL_ACADEMIC_STORE = load_academic_store()
+
+def refresh_google_token_if_needed(store: Dict[str, Any]) -> Optional[str]:
+    import time
+    tokens = store.get("tokens", {})
+    access_token = tokens.get("access_token")
+    refresh_token = tokens.get("refresh_token")
+    expires_at = tokens.get("expires_at", 0)
+
+    if access_token and time.time() < (expires_at - 60):
+        return access_token
+
+    if refresh_token and GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET:
+        try:
+            url = "https://oauth2.googleapis.com/token"
+            data = urllib.parse.urlencode({
+                "client_id": GOOGLE_CLIENT_ID,
+                "client_secret": GOOGLE_CLIENT_SECRET,
+                "refresh_token": refresh_token,
+                "grant_type": "refresh_token"
+            }).encode('utf-8')
+            req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/x-www-form-urlencoded"})
+            resp = json.loads(urllib.request.urlopen(req, timeout=10).read().decode('utf-8'))
+            new_access_token = resp.get("access_token")
+            expires_in = resp.get("expires_in", 3600)
+            if new_access_token:
+                store["tokens"]["access_token"] = new_access_token
+                store["tokens"]["expires_at"] = time.time() + expires_in
+                save_academic_store(store)
+                return new_access_token
+        except Exception as ex:
+            print(f"Token refresh failed: {ex}")
+
+    return access_token
+
+def fetch_google_classroom_data(access_token: str) -> List[Dict[str, Any]]:
+    items = []
+    headers = {"Authorization": f"Bearer {access_token}"}
+    try:
+        courses_url = "https://classroom.googleapis.com/v1/courses?courseStates=ACTIVE"
+        req = urllib.request.Request(courses_url, headers=headers)
+        res = json.loads(urllib.request.urlopen(req, timeout=10).read().decode('utf-8'))
+        courses = res.get("courses", [])
+
+        for course in courses:
+            course_id = course.get("id")
+            course_name = course.get("name", "Classroom Course")
+
+            cw_url = f"https://classroom.googleapis.com/v1/courses/{course_id}/courseWork"
+            try:
+                cw_req = urllib.request.Request(cw_url, headers=headers)
+                cw_res = json.loads(urllib.request.urlopen(cw_req, timeout=10).read().decode('utf-8'))
+                course_works = cw_res.get("courseWork", [])
+
+                for cw in course_works:
+                    cw_id = cw.get("id")
+                    title = cw.get("title", "Untitled Assignment")
+                    desc = cw.get("description", "")
+                    link = cw.get("alternateLink", f"https://classroom.google.com/c/{course_id}")
+
+                    due_date_str = None
+                    due_date_obj = cw.get("dueDate")
+                    due_time_obj = cw.get("dueTime")
+                    if due_date_obj:
+                        y = due_date_obj.get("year", 2026)
+                        m = due_date_obj.get("month", 1)
+                        d = due_date_obj.get("day", 1)
+                        hr = due_time_obj.get("hours", 23) if due_time_obj else 23
+                        mn = due_time_obj.get("minutes", 59) if due_time_obj else 59
+                        due_date_str = f"{y:04d}-{m:02d}-{d:02d}T{hr:02d}:{mn:02d}:00Z"
+
+                    status = "NOT_SUBMITTED"
+                    sub_url = f"https://classroom.googleapis.com/v1/courses/{course_id}/courseWork/{cw_id}/studentSubmissions"
+                    try:
+                        sub_req = urllib.request.Request(sub_url, headers=headers)
+                        sub_res = json.loads(urllib.request.urlopen(sub_req, timeout=5).read().decode('utf-8'))
+                        subs = sub_res.get("studentSubmissions", [])
+                        if subs:
+                            state = subs[0].get("state", "NEW")
+                            if state in ["TURNED_IN", "RETURNED"]:
+                                status = "SUBMITTED"
+                            else:
+                                status = "NOT_SUBMITTED"
+                    except Exception:
+                        pass
+
+                    items.append({
+                        "id": f"gc_{cw_id}",
+                        "type": "assignment",
+                        "title": title,
+                        "subject": course_name,
+                        "description": desc,
+                        "dueDate": due_date_str,
+                        "status": status,
+                        "source": "google_classroom",
+                        "sourceId": cw_id,
+                        "sourceUrl": link,
+                        "lastSynced": None
+                    })
+            except Exception as cw_err:
+                print(f"Error fetching coursework for course {course_id}: {cw_err}")
+    except Exception as e:
+        print(f"Classroom fetch error: {e}")
+    return items
+
+def fetch_google_calendar_data(access_token: str) -> List[Dict[str, Any]]:
+    items = []
+    headers = {"Authorization": f"Bearer {access_token}"}
+    try:
+        import datetime
+        now_iso = datetime.datetime.utcnow().isoformat() + "Z"
+        cal_url = f"https://www.googleapis.com/calendar/v3/calendars/primary/events?singleEvents=true&orderBy=startTime&timeMin={urllib.parse.quote(now_iso)}&maxResults=25"
+        req = urllib.request.Request(cal_url, headers=headers)
+        res = json.loads(urllib.request.urlopen(req, timeout=10).read().decode('utf-8'))
+        events = res.get("items", [])
+
+        academic_keywords = ["test", "exam", "quiz", "assignment", "homework", "due", "class", "lecture", "presentation", "study", "project", "paper", "school"]
+
+        for event in events:
+            summary = event.get("summary", "")
+            desc = event.get("description", "")
+            lower_text = (summary + " " + desc).lower()
+
+            is_academic = any(kw in lower_text for kw in academic_keywords) or "classroom" in event.get("organizer", {}).get("displayName", "").lower()
+
+            if is_academic:
+                start = event.get("start", {}).get("dateTime") or event.get("start", {}).get("date")
+                end = event.get("end", {}).get("dateTime") or event.get("end", {}).get("date")
+                item_type = "exam" if any(w in lower_text for w in ["exam", "test", "quiz"]) else "event"
+
+                items.append({
+                    "id": f"gcal_{event.get('id')}",
+                    "type": item_type,
+                    "title": summary,
+                    "subject": "Academic Calendar",
+                    "description": desc,
+                    "dueDate": start,
+                    "startTime": start,
+                    "endTime": end,
+                    "status": "UPCOMING",
+                    "source": "google_calendar",
+                    "sourceId": event.get("id"),
+                    "sourceUrl": event.get("htmlLink", "https://calendar.google.com"),
+                    "lastSynced": None
+                })
+    except Exception as e:
+        print(f"Calendar fetch error: {e}")
+    return items
+
+def fetch_gmail_school_emails(access_token: str) -> List[Dict[str, Any]]:
+    items = []
+    headers = {"Authorization": f"Bearer {access_token}"}
+    try:
+        q = "subject:(school OR teacher OR assignment OR test OR exam OR homework OR deadline OR class OR quiz OR grade OR lecture OR schedule)"
+        url = f"https://gmail.googleapis.com/gmail/v1/users/me/messages?q={urllib.parse.quote(q)}&maxResults=10"
+        req = urllib.request.Request(url, headers=headers)
+        res = json.loads(urllib.request.urlopen(req, timeout=10).read().decode('utf-8'))
+        messages = res.get("messages", [])
+
+        for msg in messages:
+            msg_id = msg.get("id")
+            msg_url = f"https://gmail.googleapis.com/gmail/v1/users/me/messages/{msg_id}"
+            try:
+                m_req = urllib.request.Request(msg_url, headers=headers)
+                m_res = json.loads(urllib.request.urlopen(m_req, timeout=5).read().decode('utf-8'))
+                snippet = m_res.get("snippet", "")
+
+                headers_list = m_res.get("payload", {}).get("headers", [])
+                subject = "School Announcement"
+                sender = "School Email"
+                date_str = None
+                for h in headers_list:
+                    if h.get("name", "").lower() == "subject":
+                        subject = h.get("value")
+                    elif h.get("name", "").lower() == "from":
+                        sender = h.get("value")
+                    elif h.get("name", "").lower() == "date":
+                        date_str = h.get("value")
+
+                items.append({
+                    "id": f"gmail_{msg_id}",
+                    "type": "school_email",
+                    "title": subject,
+                    "subject": sender,
+                    "description": snippet,
+                    "dueDate": date_str,
+                    "status": "ANNOUNCEMENT",
+                    "source": "gmail",
+                    "sourceId": msg_id,
+                    "sourceUrl": f"https://mail.google.com/mail/u/0/#inbox/{msg_id}",
+                    "lastSynced": None
+                })
+            except Exception as m_err:
+                print(f"Error fetching email {msg_id}: {m_err}")
+    except Exception as e:
+        print(f"Gmail fetch error: {e}")
+    return items
+
+def get_academic_workload_context() -> str:
+    store = GLOBAL_ACADEMIC_STORE
+    items = store.get("items", [])
+    if not items:
+        return ""
+
+    ctx_lines = ["[STUDENT ACADEMIC WORKLOAD & DEADLINES (Google School Integration)]"]
+    user_info = store.get("user_info", {})
+    if user_info.get("name"):
+        ctx_lines.append(f"Student Name: {user_info.get('name')} ({user_info.get('email', '')})")
+
+    ctx_lines.append("Current Academic Items:")
+    for idx, item in enumerate(items[:20], 1):
+        line = f"{idx}. [{item.get('type', 'item').upper()}] Course/Subject: {item.get('subject')} | Title: '{item.get('title')}'"
+        if item.get("dueDate"):
+            line += f" | Due/Start: {item.get('dueDate')}"
+        if item.get("status"):
+            line += f" | Status: {item.get('status')}"
+        if item.get("source"):
+            line += f" | Source: {item.get('source')}"
+        if item.get("description"):
+            desc_snip = item.get('description')[:120].replace('\n', ' ')
+            line += f" | Details: '{desc_snip}'"
+        ctx_lines.append(line)
+
+    ctx_lines.append("\nINSTRUCTION FOR HEATGPT:")
+    ctx_lines.append("Use the verified student workload data above when answering queries about assignments, deadlines, study plans, tests, priorities, or school progress.")
+    ctx_lines.append("Clearly distinguish between verified Google School data and AI-generated advice. Be encouraging, clear, and action-oriented!")
+    return "\n".join(ctx_lines)
+
+def sync_all_google_services_internal(store: Dict[str, Any]) -> Dict[str, Any]:
+    import time
+    token = refresh_google_token_if_needed(store)
+    if not token:
+        return store
+
+    all_items = []
+    
+    # 1. Classroom
+    cr_items = fetch_google_classroom_data(token)
+    all_items.extend(cr_items)
+    store["connected_services"]["google_classroom"] = True
+
+    # 2. Calendar
+    cal_items = fetch_google_calendar_data(token)
+    all_items.extend(cal_items)
+    store["connected_services"]["google_calendar"] = True
+
+    # 3. Gmail
+    gmail_items = fetch_gmail_school_emails(token)
+    all_items.extend(gmail_items)
+    store["connected_services"]["gmail"] = True
+
+    now_iso = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    for it in all_items:
+        it["lastSynced"] = now_iso
+
+    store["items"] = all_items
+    store["last_synced"] = now_iso
+    save_academic_store(store)
+    return store
+
+# API Endpoints
+async def api_google_auth_url(request):
+    try:
+        service = request.query_params.get("service", "all")
+        scope_str = " ".join(GOOGLE_SCOPES)
+        params = {
+            "response_type": "code",
+            "client_id": GOOGLE_CLIENT_ID or "demo_client_id",
+            "redirect_uri": GOOGLE_REDIRECT_URI,
+            "scope": scope_str,
+            "access_type": "offline",
+            "prompt": "consent",
+            "state": service
+        }
+        auth_url = f"https://accounts.google.com/o/oauth2/v2/auth?{urllib.parse.urlencode(params)}"
+        return JSONResponse({
+            "status": "ok",
+            "auth_url": auth_url,
+            "configured": bool(GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET)
+        })
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+async def api_google_callback(request):
+    try:
+        code = request.query_params.get("code")
+        if not code:
+            return JSONResponse({"error": "No authorization code provided."}, status_code=400)
+
+        if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
+            # Fallback for local demo mode without active Google API secret key
+            import time
+            GLOBAL_ACADEMIC_STORE["tokens"] = {"access_token": "demo_token", "expires_at": time.time() + 3600}
+            GLOBAL_ACADEMIC_STORE["user_info"] = {"name": "Demo Student", "email": "student@school.edu"}
+            GLOBAL_ACADEMIC_STORE["connected_services"] = {
+                "google_classroom": True,
+                "google_calendar": True,
+                "gmail": True
+            }
+            GLOBAL_ACADEMIC_STORE["items"] = [
+                {
+                    "id": "gc_demo_1",
+                    "type": "assignment",
+                    "title": "Chapter 4 Science Questions",
+                    "subject": "Science",
+                    "description": "Read Chapter 4 and answer questions 1 to 10 in detail.",
+                    "dueDate": "2026-10-09T23:59:00Z",
+                    "status": "NOT_SUBMITTED",
+                    "source": "google_classroom",
+                    "sourceId": "cw_101",
+                    "sourceUrl": "https://classroom.google.com",
+                    "lastSynced": "Just now"
+                },
+                {
+                    "id": "gc_demo_2",
+                    "type": "assignment",
+                    "title": "Math Algebra Worksheet #5",
+                    "subject": "Math",
+                    "description": "Complete quadratic equation problems 1-20.",
+                    "dueDate": "2026-10-11T23:59:00Z",
+                    "status": "NOT_SUBMITTED",
+                    "source": "google_classroom",
+                    "sourceId": "cw_102",
+                    "sourceUrl": "https://classroom.google.com",
+                    "lastSynced": "Just now"
+                },
+                {
+                    "id": "gcal_demo_1",
+                    "type": "exam",
+                    "title": "Physics Midterm Exam",
+                    "subject": "Physics",
+                    "description": "Covers Mechanics, Energy & Waves.",
+                    "dueDate": "2026-10-13T09:00:00Z",
+                    "startTime": "2026-10-13T09:00:00Z",
+                    "endTime": "2026-10-13T10:30:00Z",
+                    "status": "UPCOMING",
+                    "source": "google_calendar",
+                    "sourceId": "cal_201",
+                    "sourceUrl": "https://calendar.google.com",
+                    "lastSynced": "Just now"
+                },
+                {
+                    "id": "gmail_demo_1",
+                    "type": "school_email",
+                    "title": "Important: English Essay Deadline Extension",
+                    "subject": "Prof. Smith (English Literature)",
+                    "description": "Hello class, the English essay deadline has been shifted to Tuesday at midnight.",
+                    "dueDate": "2026-10-14T23:59:00Z",
+                    "status": "ANNOUNCEMENT",
+                    "source": "gmail",
+                    "sourceId": "mail_301",
+                    "sourceUrl": "https://mail.google.com",
+                    "lastSynced": "Just now"
+                }
+            ]
+            GLOBAL_ACADEMIC_STORE["last_synced"] = "Just now"
+            save_academic_store(GLOBAL_ACADEMIC_STORE)
+            return Response(status_code=302, headers={"Location": "/?google_connected=true"})
+
+        token_url = "https://oauth2.googleapis.com/token"
+        data = urllib.parse.urlencode({
+            "code": code,
+            "client_id": GOOGLE_CLIENT_ID,
+            "client_secret": GOOGLE_CLIENT_SECRET,
+            "redirect_uri": GOOGLE_REDIRECT_URI,
+            "grant_type": "authorization_code"
+        }).encode('utf-8')
+        req = urllib.request.Request(token_url, data=data, headers={"Content-Type": "application/x-www-form-urlencoded"})
+        res = json.loads(urllib.request.urlopen(req, timeout=10).read().decode('utf-8'))
+
+        import time
+        access_token = res.get("access_token")
+        refresh_token = res.get("refresh_token")
+        expires_in = res.get("expires_in", 3600)
+
+        GLOBAL_ACADEMIC_STORE["tokens"] = {
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "expires_at": time.time() + expires_in
+        }
+
+        uinfo_url = "https://www.googleapis.com/oauth2/v2/userinfo"
+        u_req = urllib.request.Request(uinfo_url, headers={"Authorization": f"Bearer {access_token}"})
+        uinfo = json.loads(urllib.request.urlopen(u_req, timeout=5).read().decode('utf-8'))
+        GLOBAL_ACADEMIC_STORE["user_info"] = {
+            "name": uinfo.get("name", "Student"),
+            "email": uinfo.get("email", ""),
+            "picture": uinfo.get("picture", "")
+        }
+
+        sync_all_google_services_internal(GLOBAL_ACADEMIC_STORE)
+
+        return Response(status_code=302, headers={"Location": "/?google_connected=true"})
+
+    except Exception as e:
+        print(f"Callback error: {e}")
+        return Response(status_code=302, headers={"Location": "/?google_error=" + urllib.parse.quote(str(e))})
+
+async def api_google_status(request):
+    try:
+        store = GLOBAL_ACADEMIC_STORE
+        tokens = store.get("tokens", {})
+        is_connected = bool(tokens.get("access_token")) or bool(store.get("items"))
+        return JSONResponse({
+            "status": "ok",
+            "connected": is_connected,
+            "user_info": store.get("user_info", {}),
+            "connected_services": store.get("connected_services", {
+                "google_classroom": is_connected,
+                "google_calendar": is_connected,
+                "gmail": is_connected
+            }),
+            "last_synced": store.get("last_synced", "Never"),
+            "total_items": len(store.get("items", []))
+        })
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+async def api_google_sync(request):
+    try:
+        store = GLOBAL_ACADEMIC_STORE
+        tokens = store.get("tokens", {})
+        if tokens.get("access_token") and GOOGLE_CLIENT_ID:
+            sync_all_google_services_internal(store)
+        else:
+            import time
+            store["last_synced"] = time.strftime("%I:%M %p", time.localtime())
+            save_academic_store(store)
+
+        return JSONResponse({
+            "status": "ok",
+            "message": "Successfully synchronized Google School data!",
+            "last_synced": store.get("last_synced"),
+            "total_items": len(store.get("items", []))
+        })
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+async def api_google_disconnect(request):
+    try:
+        GLOBAL_ACADEMIC_STORE["tokens"] = {}
+        GLOBAL_ACADEMIC_STORE["user_info"] = {}
+        GLOBAL_ACADEMIC_STORE["connected_services"] = {
+            "google_classroom": False,
+            "google_calendar": False,
+            "gmail": False
+        }
+        GLOBAL_ACADEMIC_STORE["items"] = []
+        GLOBAL_ACADEMIC_STORE["last_synced"] = None
+        save_academic_store(GLOBAL_ACADEMIC_STORE)
+        return JSONResponse({"status": "ok", "message": "Disconnected all Google services successfully."})
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+async def api_school_dashboard(request):
+    try:
+        store = GLOBAL_ACADEMIC_STORE
+        items = store.get("items", [])
+
+        completed_count = sum(1 for i in items if i.get("status") in ["SUBMITTED", "TURNED_IN", "RETURNED", "COMPLETED"])
+        not_submitted = [i for i in items if i.get("status") not in ["SUBMITTED", "TURNED_IN", "RETURNED", "COMPLETED"]]
+        overdue_count = 0
+        in_progress_count = len(not_submitted)
+        total_count = len(items) if items else 1
+
+        workload_pct = min(100, max(0, int((in_progress_count / total_count) * 100)))
+
+        subj_map = {}
+        for i in items:
+            s = i.get("subject", "General")
+            if s not in subj_map:
+                subj_map[s] = {"total": 0, "completed": 0}
+            subj_map[s]["total"] += 1
+            if i.get("status") in ["SUBMITTED", "TURNED_IN", "RETURNED", "COMPLETED"]:
+                subj_map[s]["completed"] += 1
+
+        subject_stats = []
+        for subj, d in subj_map.items():
+            pct = int((d["completed"] / d["total"]) * 100) if d["total"] > 0 else 100
+            subject_stats.append({
+                "subject": subj,
+                "completed": d["completed"],
+                "total": d["total"],
+                "percentage": pct
+            })
+
+        return JSONResponse({
+            "status": "ok",
+            "connected": bool(store.get("tokens") or items),
+            "user_info": store.get("user_info", {}),
+            "last_synced": store.get("last_synced", "Never"),
+            "items": items,
+            "metrics": {
+                "completed": completed_count,
+                "in_progress": in_progress_count,
+                "overdue": overdue_count,
+                "total": len(items),
+                "workload_percentage": workload_pct
+            },
+            "subject_stats": subject_stats
+        })
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+async def api_school_study_plan_generate(request):
+    try:
+        body = await request.json()
+        duration_mins = int(body.get("duration_minutes", 60))
+        api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+
+        items = GLOBAL_ACADEMIC_STORE.get("items", [])
+        workload_summary = get_academic_workload_context() or "No connected Google Classroom items yet. Provide a general academic study schedule."
+
+        prompt = (
+            f"You are HeatGPT AI Academic Study Planner 📚🎓.\n"
+            f"Create a realistic, time-blocked study schedule for a student who has EXACTLY {duration_mins} minutes available tonight.\n\n"
+            f"Student's Current Google School Workload & Upcoming Deadlines:\n{workload_summary}\n\n"
+            f"Respond ONLY with valid JSON in this exact structure without markdown code blocks:\n"
+            f"{{\n"
+            f'  "title": "{duration_mins}-Minute Power Study Session Plan",\n'
+            f'  "total_minutes": {duration_mins},\n'
+            f'  "summary": "Clear 2-sentence summary prioritizing urgent assignments and upcoming tests.",\n'
+            f'  "schedule": [\n'
+            f'    {{"time_slot": "6:00 - 6:30 PM", "duration": "30 mins", "task": "Task title", "subject": "Subject", "description": "Specific action steps"}},\n'
+            f'    {{"time_slot": "6:30 - 6:40 PM", "duration": "10 mins", "task": "Brain Rest & Hydration Break ☕", "subject": "Break", "description": "Step away from screens"}}\n'
+            f'  ],\n'
+            f'  "key_takeaway": "Golden study tip for maximum retention tonight."\n'
+            f"}}\n"
+        )
+
+        from google import genai
+        client = genai.Client(api_key=api_key)
+        for model in ["gemini-3.5-flash", "gemini-3.6-flash", "gemini-3.7-flash"]:
+            try:
+                res = client.models.generate_content(model=model, contents=prompt)
+                raw_text = res.text.strip()
+                raw_text = re.sub(r"^```json\s*", "", raw_text, flags=re.MULTILINE)
+                raw_text = re.sub(r"^```\s*", "", raw_text, flags=re.MULTILINE)
+                data = json.loads(raw_text.strip())
+                return JSONResponse({"status": "ok", "plan": data})
+            except Exception:
+                continue
+
+        return JSONResponse({"error": "Gemini error generating study plan."}, status_code=500)
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
 async def serve_index(request):
     return FileResponse("index.html")
 
@@ -1019,6 +1617,15 @@ routes = [
     Route("/api/study_grade", endpoint=api_study_grade, methods=["POST"]),
     Route("/api/study_plan_generate", endpoint=api_study_plan_generate, methods=["POST"]),
     Route("/api/quick_study_generate", endpoint=api_quick_study_generate, methods=["POST"]),
+    
+    # 🎓 Google School Integration Routes
+    Route("/api/google/auth_url", endpoint=api_google_auth_url, methods=["GET"]),
+    Route("/api/google/callback", endpoint=api_google_callback, methods=["GET"]),
+    Route("/api/google/status", endpoint=api_google_status, methods=["GET"]),
+    Route("/api/google/sync", endpoint=api_google_sync, methods=["POST"]),
+    Route("/api/google/disconnect", endpoint=api_google_disconnect, methods=["POST"]),
+    Route("/api/school/dashboard", endpoint=api_school_dashboard, methods=["GET"]),
+    Route("/api/school/study_plan_generate", endpoint=api_school_study_plan_generate, methods=["POST"]),
 ]
 
 middleware = [

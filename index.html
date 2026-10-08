@@ -97,7 +97,25 @@
 
             <!-- 🎙️ AI PODCAST & STUDY HUB -->
             <div class="sidebar-section">
-                <label class="section-label"><i class="fa-solid fa-podcast" style="color: #ef4444;"></i> Gemini Media & Study</label>
+                <label class="section-label"><i class="fa-solid fa-graduation-cap" style="color: #60a5fa;"></i> Google School Hub</label>
+
+                <!-- 🎓 CONNECT SCHOOL BUTTON IN SIDEBAR -->
+                <button type="button" class="study-tools-btn" id="openSchoolConnectBtn" onclick="openSchoolConnectModal()" style="background: linear-gradient(135deg, rgba(66, 133, 244, 0.2), rgba(234, 67, 53, 0.2)); border-color: rgba(66, 133, 244, 0.5); color: #60a5fa; margin-bottom: 6px;">
+                    <i class="fa-solid fa-graduation-cap"></i>
+                    <span>🎓 Connect School (Google)</span>
+                </button>
+
+                <!-- 📊 ACADEMIC DASHBOARD BUTTON -->
+                <button type="button" class="study-tools-btn" id="openAcademicDashBtn" onclick="openAcademicDashboardModal()" style="background: linear-gradient(135deg, rgba(168, 85, 247, 0.18), rgba(56, 189, 248, 0.18)); border-color: rgba(168, 85, 247, 0.45); color: #c084fc; margin-bottom: 6px;">
+                    <i class="fa-solid fa-chart-pie"></i>
+                    <span>📊 Academic Dashboard</span>
+                </button>
+
+                <!-- ⏱️ PLAN MY STUDY BUTTON -->
+                <button type="button" class="study-tools-btn" id="openStudyPlannerBtn" onclick="openStudyPlannerModal()" style="background: linear-gradient(135deg, rgba(251, 146, 60, 0.2), rgba(250, 204, 21, 0.2)); border-color: rgba(251, 146, 60, 0.5); color: #fb923c; margin-bottom: 6px;">
+                    <i class="fa-solid fa-calendar-check"></i>
+                    <span>⏱️ Plan My Study</span>
+                </button>
 
                 <!-- TASK NOTER BUTTON IN SIDEBAR -->
                 <button type="button" class="study-tools-btn" id="openTaskBtn" onclick="openTaskModal()" style="background: linear-gradient(135deg, rgba(250, 204, 21, 0.18), rgba(249, 115, 22, 0.18)); border-color: rgba(250, 204, 21, 0.45); color: #facc15; margin-bottom: 6px;">
@@ -165,6 +183,12 @@
                     </div>
                 </div>
                 <div class="top-header-right">
+                    <!-- CONNECT SCHOOL BUTTON IN TOP HEADER -->
+                    <button type="button" class="action-top-btn" id="headerConnectSchoolBtn" onclick="openSchoolConnectModal()" title="Connect Google School Services" style="color: #60a5fa; border-color: rgba(96, 165, 250, 0.45);">
+                        <i class="fa-solid fa-graduation-cap"></i>
+                        <span>Connect School</span>
+                    </button>
+
                     <!-- TASK NOTER BUTTON IN TOP HEADER -->
                     <button type="button" class="action-top-btn" id="headerTaskBtn" onclick="openTaskModal()" title="Task Noter & Manager" style="color: #facc15; border-color: rgba(250, 204, 21, 0.45);">
                         <i class="fa-solid fa-list-check"></i>
@@ -783,6 +807,226 @@
                 <button type="button" class="btn btn-primary" onclick="askAiToHelpWithTasks()" style="background: linear-gradient(135deg, #38bdf8, #a855f7); border: none; font-size: 0.9rem; font-weight: 700;">
                     🤖 Ask AI to Help Me Finish Tasks
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🎓 CONNECT SCHOOL MODAL -->
+    <div class="modal-overlay" id="schoolConnectModal">
+        <div class="modal-card modal-large" style="max-width: 720px;">
+            <div class="modal-header" style="border-bottom: 1px solid rgba(255,255,255,0.08);">
+                <h3><i class="fa-solid fa-graduation-cap" style="color: #60a5fa;"></i> Connect Your School Services</h3>
+                <button type="button" class="modal-close" onclick="closeSchoolConnectModal()">&times;</button>
+            </div>
+            <div class="modal-body" style="padding: 20px;">
+                <p style="color: #94a3b8; margin-bottom: 20px; font-size: 0.95rem;">
+                    Securely link your Google School services so HeatGPT can automatically organize your assignments, tests, deadlines, and teacher announcements into a personal AI study hub.
+                </p>
+
+                <!-- Service Connection Cards Grid -->
+                <div class="services-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 20px;">
+                    
+                    <!-- Google Classroom Card -->
+                    <div class="service-card" id="cardClassroom" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 16px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <i class="fa-solid fa-chalkboard-user" style="font-size: 1.5rem; color: #34a853;"></i>
+                                <span style="font-weight: 700; color: #f8fafc;">Google Classroom</span>
+                            </div>
+                            <span class="service-badge" id="badgeClassroom" style="font-size: 0.75rem; padding: 3px 8px; border-radius: 12px; background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3);">Not Connected</span>
+                        </div>
+                        <p style="font-size: 0.82rem; color: #94a3b8; min-height: 40px; margin-bottom: 12px;">
+                            Imports active courses, coursework titles, descriptions, due dates & submission status.
+                        </p>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <button type="button" class="btn btn-sm" id="btnConnectClassroom" onclick="connectGoogleService('google_classroom')" style="background: #34a853; color: #fff; font-weight: 700; border: none; border-radius: 8px; padding: 6px 14px; font-size: 0.85rem;">
+                                Connect
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Google Calendar Card -->
+                    <div class="service-card" id="cardCalendar" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 16px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <i class="fa-solid fa-calendar-days" style="font-size: 1.5rem; color: #4285f4;"></i>
+                                <span style="font-weight: 700; color: #f8fafc;">Google Calendar</span>
+                            </div>
+                            <span class="service-badge" id="badgeCalendar" style="font-size: 0.75rem; padding: 3px 8px; border-radius: 12px; background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3);">Not Connected</span>
+                        </div>
+                        <p style="font-size: 0.82rem; color: #94a3b8; min-height: 40px; margin-bottom: 12px;">
+                            Retrieves academic tests, exam dates, study sessions & school events.
+                        </p>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <button type="button" class="btn btn-sm" id="btnConnectCalendar" onclick="connectGoogleService('google_calendar')" style="background: #4285f4; color: #fff; font-weight: 700; border: none; border-radius: 8px; padding: 6px 14px; font-size: 0.85rem;">
+                                Connect
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Gmail Card -->
+                    <div class="service-card" id="cardGmail" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 16px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <i class="fa-solid fa-envelope" style="font-size: 1.5rem; color: #ea4335;"></i>
+                                <span style="font-weight: 700; color: #f8fafc;">Gmail</span>
+                            </div>
+                            <span class="service-badge" id="badgeGmail" style="font-size: 0.75rem; padding: 3px 8px; border-radius: 12px; background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3);">Not Connected</span>
+                        </div>
+                        <p style="font-size: 0.82rem; color: #94a3b8; min-height: 40px; margin-bottom: 12px;">
+                            Filters relevant teacher emails, assignment updates & deadline announcements.
+                        </p>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <button type="button" class="btn btn-sm" id="btnConnectGmail" onclick="connectGoogleService('gmail')" style="background: #ea4335; color: #fff; font-weight: 700; border: none; border-radius: 8px; padding: 6px 14px; font-size: 0.85rem;">
+                                Connect
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sync Bar -->
+                <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+                    <div>
+                        <small style="color: #94a3b8; display: block;">Last Synced:</small>
+                        <strong id="schoolLastSyncedText" style="color: #f1f5f9; font-size: 0.9rem;">Never</strong>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button type="button" class="btn btn-sm" onclick="syncGoogleSchoolData()" style="background: linear-gradient(135deg, #f97316, #ef4444); color: #fff; font-weight: 700; border: none; border-radius: 8px; padding: 8px 16px;">
+                            <i class="fa-solid fa-rotate"></i> Sync Now
+                        </button>
+                        <button type="button" class="btn btn-sm" onclick="disconnectGoogleServices()" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); font-weight: 600; border-radius: 8px; padding: 8px 14px;">
+                            Disconnect All
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Security & Privacy Accordion -->
+                <details class="privacy-box" style="background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 12px 16px; font-size: 0.85rem;">
+                    <summary style="font-weight: 700; color: #38bdf8; cursor: pointer;"><i class="fa-solid fa-shield-halved"></i> Privacy & Security FAQ</summary>
+                    <ul style="color: #cbd5e1; margin-top: 10px; padding-left: 18px; line-height: 1.6;">
+                        <li><strong>What HeatGPT accesses:</strong> Only your official coursework, due dates, test events, and relevant school announcements.</li>
+                        <li><strong>What HeatGPT stores:</strong> Encrypted access tokens and normalized assignment items locally on your server. We NEVER store your Google password.</li>
+                        <li><strong>What HeatGPT sends to AI:</strong> Structured task titles and due dates are formatted into your private prompt context so Gemini can answer workload questions accurately.</li>
+                        <li><strong>How to disconnect:</strong> Click "Disconnect All" at any time to instantly revoke access and clear stored academic items.</li>
+                    </ul>
+                </details>
+            </div>
+            <div class="modal-footer" style="border-top: 1px solid rgba(255,255,255,0.08); display: flex; justify-content: space-between;">
+                <button type="button" class="btn btn-secondary" onclick="closeSchoolConnectModal()">Close</button>
+                <button type="button" class="btn btn-primary" onclick="openAcademicDashboardModal()" style="background: linear-gradient(135deg, #a855f7, #38bdf8); border: none; font-weight: 700;">
+                    Go to Academic Dashboard 📊
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 📊 ACADEMIC DASHBOARD MODAL -->
+    <div class="modal-overlay" id="academicDashboardModal">
+        <div class="modal-card modal-large" style="max-width: 800px;">
+            <div class="modal-header" style="border-bottom: 1px solid rgba(255,255,255,0.08);">
+                <h3><i class="fa-solid fa-chart-pie" style="color: #c084fc;"></i> HeatGPT Academic Workload Dashboard</h3>
+                <button type="button" class="modal-close" onclick="closeAcademicDashboardModal()">&times;</button>
+            </div>
+            <div class="modal-body" style="padding: 20px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+                    <div>
+                        <h2 style="font-size: 1.3rem; font-weight: 800; color: #f8fafc; margin: 0;">Good day 👋 <span id="dashStudentName">Student</span></h2>
+                        <small style="color: #94a3b8;">Your live school workload, priorities, & progress</small>
+                    </div>
+                    <button type="button" class="btn btn-sm" onclick="openStudyPlannerModal()" style="background: linear-gradient(135deg, #fb923c, #facc15); color: #000; font-weight: 800; border: none; border-radius: 8px; padding: 8px 16px;">
+                        <i class="fa-solid fa-calendar-check"></i> Plan My Study
+                    </button>
+                </div>
+
+                <!-- Stats Cards Row -->
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px;">
+                    <div style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 10px; padding: 14px; text-align: center;">
+                        <span style="font-size: 0.75rem; color: #34d399; font-weight: 700; text-transform: uppercase;">Completed</span>
+                        <h3 id="dashCompletedCount" style="font-size: 1.6rem; color: #34d399; margin: 4px 0 0; font-weight: 800;">0</h3>
+                    </div>
+                    <div style="background: rgba(249, 115, 22, 0.12); border: 1px solid rgba(249, 115, 22, 0.3); border-radius: 10px; padding: 14px; text-align: center;">
+                        <span style="font-size: 0.75rem; color: #fb923c; font-weight: 700; text-transform: uppercase;">In Progress</span>
+                        <h3 id="dashInProgressCount" style="font-size: 1.6rem; color: #fb923c; margin: 4px 0 0; font-weight: 800;">0</h3>
+                    </div>
+                    <div style="background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 10px; padding: 14px; text-align: center;">
+                        <span style="font-size: 0.75rem; color: #f87171; font-weight: 700; text-transform: uppercase;">Overdue</span>
+                        <h3 id="dashOverdueCount" style="font-size: 1.6rem; color: #f87171; margin: 4px 0 0; font-weight: 800;">0</h3>
+                    </div>
+                    <div style="background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 10px; padding: 14px; text-align: center;">
+                        <span style="font-size: 0.75rem; color: #38bdf8; font-weight: 700; text-transform: uppercase;">Workload</span>
+                        <h3 id="dashWorkloadPct" style="font-size: 1.6rem; color: #38bdf8; margin: 4px 0 0; font-weight: 800;">0%</h3>
+                    </div>
+                </div>
+
+                <!-- Priority Section -->
+                <div style="margin-bottom: 20px;">
+                    <h4 style="font-size: 0.95rem; color: #f87171; margin-bottom: 10px; font-weight: 700;">
+                        <i class="fa-solid fa-triangle-exclamation"></i> PRIORITY & URGENT WORKLOAD
+                    </h4>
+                    <div id="dashPriorityFeed" style="display: flex; flex-direction: column; gap: 8px;">
+                        <!-- Priority Cards Render Here -->
+                    </div>
+                </div>
+
+                <!-- Subject Progress Bars -->
+                <div style="margin-bottom: 20px;">
+                    <h4 style="font-size: 0.95rem; color: #cbd5e1; margin-bottom: 10px; font-weight: 700;">
+                        <i class="fa-solid fa-book-bookmark"></i> SUBJECT PROGRESS BREAKDOWN
+                    </h4>
+                    <div id="dashSubjectFeed" style="display: flex; flex-direction: column; gap: 10px;">
+                        <!-- Subject Progress Bars Render Here -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="border-top: 1px solid rgba(255,255,255,0.08); display: flex; justify-content: space-between;">
+                <button type="button" class="btn btn-secondary" onclick="closeAcademicDashboardModal()">Close</button>
+                <button type="button" class="btn btn-primary" onclick="askAiAboutWorkload()" style="background: linear-gradient(135deg, #38bdf8, #a855f7); border: none; font-weight: 700;">
+                    🤖 Ask AI: "What should I do today?"
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ⏱️ PLAN MY STUDY MODAL -->
+    <div class="modal-overlay" id="studyPlannerModal">
+        <div class="modal-card" style="max-width: 680px;">
+            <div class="modal-header" style="border-bottom: 1px solid rgba(255,255,255,0.08);">
+                <h3><i class="fa-solid fa-calendar-check" style="color: #fb923c;"></i> Plan My Study — AI Schedule Generator</h3>
+                <button type="button" class="modal-close" onclick="closeStudyPlannerModal()">&times;</button>
+            </div>
+            <div class="modal-body" style="padding: 20px;">
+                <p style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 16px;">
+                    Enter your available study time tonight. HeatGPT will analyze your active Google Classroom assignments, test dates, and priorities to build a realistic time-blocked schedule.
+                </p>
+                <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 20px;">
+                    <label style="font-weight: 700; color: #f8fafc; white-space: nowrap;">Available Time:</label>
+                    <select id="studyDurationSelect" class="custom-select" style="width: 180px;">
+                        <option value="30">30 Minutes (Quick Sprint)</option>
+                        <option value="60" selected>60 Minutes (1 Hour)</option>
+                        <option value="90">90 Minutes (1.5 Hours)</option>
+                        <option value="120">120 Minutes (2 Hours)</option>
+                    </select>
+                    <button type="button" class="btn btn-primary" onclick="generateAiStudyPlan()" style="background: linear-gradient(135deg, #fb923c, #f97316); color: #fff; font-weight: 800; border: none; border-radius: 8px; padding: 10px 20px; white-space: nowrap;">
+                        ⚡ Generate Plan
+                    </button>
+                </div>
+
+                <div id="studyPlanOutputContainer" style="display: none;">
+                    <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(251, 146, 60, 0.3); border-radius: 12px; padding: 16px;">
+                        <h4 id="planTitle" style="color: #fb923c; font-size: 1.1rem; margin-top: 0; font-weight: 800;">Study Schedule</h4>
+                        <p id="planSummary" style="color: #cbd5e1; font-size: 0.88rem; line-height: 1.5; margin-bottom: 14px;"></p>
+                        <div id="planTimeSlots" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px;">
+                            <!-- Time slot cards render here -->
+                        </div>
+                        <div style="background: rgba(250, 204, 21, 0.12); border: 1px solid rgba(250, 204, 21, 0.3); border-radius: 8px; padding: 10px 14px;">
+                            <strong style="color: #facc15; font-size: 0.85rem;">💡 Key Takeaway:</strong>
+                            <span id="planTakeaway" style="color: #fef08a; font-size: 0.85rem; margin-left: 6px;"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="border-top: 1px solid rgba(255,255,255,0.08);">
+                <button type="button" class="btn btn-secondary" onclick="closeStudyPlannerModal()">Close</button>
             </div>
         </div>
     </div>
