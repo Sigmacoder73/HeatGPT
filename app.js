@@ -2147,6 +2147,35 @@ window.connectGoogleService = async function(service) {
     }
 };
 
+window.saveGoogleCredentials = async function() {
+    const cidInput = document.getElementById('googleClientIdInput');
+    const secInput = document.getElementById('googleClientSecretInput');
+    const clientId = cidInput ? cidInput.value.trim() : '';
+    const clientSecret = secInput ? secInput.value.trim() : '';
+
+    if (!clientId || !clientSecret) {
+        alert("Please enter both Google Client ID and Client Secret.");
+        return;
+    }
+
+    try {
+        const res = await fetch('/api/google/save_credentials', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ client_id: clientId, client_secret: clientSecret })
+        });
+        const data = await res.json();
+        if (data.status === 'ok') {
+            alert("✓ " + data.message);
+            window.connectGoogleService('all');
+        } else {
+            alert("Error saving keys: " + (data.error || "Please try again."));
+        }
+    } catch (e) {
+        alert("Error saving credentials: " + e.message);
+    }
+};
+
 window.loadGoogleStatus = async function() {
     try {
         const res = await fetch('/api/google/status');
@@ -2156,6 +2185,13 @@ window.loadGoogleStatus = async function() {
         const badgeCal = document.getElementById('badgeCalendar');
         const badgeGm = document.getElementById('badgeGmail');
         const lastSynced = document.getElementById('schoolLastSyncedText');
+        const cidInput = document.getElementById('googleClientIdInput');
+        const secInput = document.getElementById('googleClientSecretInput');
+
+        if (data.credentials) {
+            if (cidInput && data.credentials.client_id) cidInput.value = data.credentials.client_id;
+            if (secInput && data.credentials.client_secret) secInput.value = data.credentials.client_secret;
+        }
 
         const connServices = data.connected_services || {};
 

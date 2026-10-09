@@ -1039,8 +1039,18 @@ def save_academic_store(store: Dict[str, Any]):
 
 GLOBAL_ACADEMIC_STORE = load_academic_store()
 
+def get_google_credentials():
+    cid = os.environ.get("GOOGLE_CLIENT_ID", "").strip()
+    sec = os.environ.get("GOOGLE_CLIENT_SECRET", "").strip()
+    if not cid or "your_google" in cid:
+        cid = GLOBAL_ACADEMIC_STORE.get("credentials", {}).get("client_id", "").strip()
+    if not sec or "your_google" in sec:
+        sec = GLOBAL_ACADEMIC_STORE.get("credentials", {}).get("client_secret", "").strip()
+    return cid, sec
+
 def refresh_google_token_if_needed(store: Dict[str, Any]) -> Optional[str]:
     import time
+    cid, sec = get_google_credentials()
     tokens = store.get("tokens", {})
     access_token = tokens.get("access_token")
     refresh_token = tokens.get("refresh_token")
@@ -1049,12 +1059,12 @@ def refresh_google_token_if_needed(store: Dict[str, Any]) -> Optional[str]:
     if access_token and time.time() < (expires_at - 60):
         return access_token
 
-    if refresh_token and GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET:
+    if refresh_token and cid and sec:
         try:
             url = "https://oauth2.googleapis.com/token"
             data = urllib.parse.urlencode({
-                "client_id": GOOGLE_CLIENT_ID,
-                "client_secret": GOOGLE_CLIENT_SECRET,
+                "client_id": cid,
+                "client_secret": sec,
                 "refresh_token": refresh_token,
                 "grant_type": "refresh_token"
             }).encode('utf-8')
@@ -1298,24 +1308,68 @@ def sync_all_google_services_internal(store: Dict[str, Any]) -> Dict[str, Any]:
     return store
 
 # API Endpoints
+async def api_google_save_credentials(request):
+    try:
+        body = await request.json()
+        cid = body.get("client_id", "").strip()
+        sec = body.get("client_secret", "").strip()
+
+        if not cid or not sec:
+            return JSONResponse({"error": "Please enter both Google Client ID and Client Secret."}, status_code=400)
+
+        os.environ["GOOGLE_CLIENT_ID"] = cid
+        os.environ["GOOGLE_CLIENT_SECRET"] = sec
+
+        GLOBAL_ACADEMIC_STORE["credentials"] = {
+            "client_id": cid,
+            "client_secret": sec
+        }
+        save_academic_store(GLOBAL_ACADEMIC_STORE)
+
+        if os.path.exists(".env"):
+            try:
+                with open(".env", "r", encoding="utf-8") as f:
+                    content = f.read()
+                if "GOOGLE_CLIENT_ID=" in content:
+                    content = re.sub(r"GOOGLE_CLIENT_ID=.*", f"GOOGLE_CLIENT_ID={cid}", content)
+                else:
+                    content += f"\nGOOGLE_CLIENT_ID={cid}"
+                if "GOOGLE_CLIENT_SECRET=" in content:
+                    content = re.sub(r"GOOGLE_CLIENT_SECRET=.*", f"GOOGLE_CLIENT_SECRET={sec}", content)
+                else:
+                    content += f"\nGOOGLE_CLIENT_SECRET={sec}"
+                with open(".env", "w", encoding="utf-8") as f:
+                    f.write(content)
+            except Exception as env_err:
+                print(f"Error updating .env: {env_err}")
+
+        return JSONResponse({
+            "status": "ok",
+            "message": "Google Client ID and Secret saved successfully! Click 'Connect' to link your real Gmail account."
+        })
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
 async def api_google_auth_url(request):
     try:
         service = request.query_params.get("service", "all")
-        is_configured = bool(GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET and "your_google_client_id" not in GOOGLE_CLIENT_ID)
+        cid, sec = get_google_credentials()
+        is_configured = bool(cid and sec and "your_google" not in cid)
 
         if not is_configured:
             return JSONResponse({
                 "status": "ok",
                 "configured": False,
                 "demo_url": "/api/google/callback?code=demo_student_access",
-                "message": "Google Client ID not configured in .env. Falling back to demo mode."
+                "message": "Google Client ID not configured. Please enter your Google OAuth credentials or use demo mode."
             })
 
+        redirect_uri = os.environ.get("GOOGLE_REDIRECT_URI", "http://localhost:8000/api/google/callback")
         scope_str = " ".join(GOOGLE_SCOPES)
         params = {
             "response_type": "code",
-            "client_id": GOOGLE_CLIENT_ID,
-            "redirect_uri": GOOGLE_REDIRECT_URI,
+            "client_id": cid,
+            "redirect_uri": redirect_uri,
             "scope": scope_str,
             "access_type": "offline",
             "prompt": "consent",
@@ -1336,8 +1390,10 @@ async def api_google_callback(request):
         if not code:
             return JSONResponse({"error": "No authorization code provided."}, status_code=400)
 
-        is_configured = bool(GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET and "your_google_client_id" not in GOOGLE_CLIENT_ID)
-        if not is_configured:
+        cid, sec = get_google_credentials()
+        is_configured = bool(cid and sec and "your_google" not in cid)
+
+        if not is_configured or code == "demo_student_access":
             # Fallback for local demo mode without active Google API secret key
             import time
             GLOBAL_ACADEMIC_STORE["tokens"] = {"access_token": "demo_token", "expires_at": time.time() + 3600}
@@ -1407,12 +1463,13 @@ async def api_google_callback(request):
             save_academic_store(GLOBAL_ACADEMIC_STORE)
             return Response(status_code=302, headers={"Location": "/?google_connected=true"})
 
+        redirect_uri = os.environ.get("GOOGLE_REDIRECT_URI", "http://localhost:8000/api/google/callback")
         token_url = "https://oauth2.googleapis.com/token"
         data = urllib.parse.urlencode({
             "code": code,
-            "client_id": GOOGLE_CLIENT_ID,
-            "client_secret": GOOGLE_CLIENT_SECRET,
-            "redirect_uri": GOOGLE_REDIRECT_URI,
+            "client_id": cid,
+            "client_secret": sec,
+            "redirect_uri": redirect_uri,
             "grant_type": "authorization_code"
         }).encode('utf-8')
         req = urllib.request.Request(token_url, data=data, headers={"Content-Type": "application/x-www-form-urlencoded"})
@@ -1450,11 +1507,18 @@ async def api_google_status(request):
     try:
         store = GLOBAL_ACADEMIC_STORE
         tokens = store.get("tokens", {})
+        cid, sec = get_google_credentials()
+        is_configured = bool(cid and sec and "your_google" not in cid)
         is_connected = bool(tokens.get("access_token")) or bool(store.get("items"))
         return JSONResponse({
             "status": "ok",
+            "configured": is_configured,
             "connected": is_connected,
             "user_info": store.get("user_info", {}),
+            "credentials": {
+                "client_id": cid,
+                "client_secret": sec
+            },
             "connected_services": store.get("connected_services", {
                 "google_classroom": is_connected,
                 "google_calendar": is_connected,
@@ -1635,6 +1699,7 @@ routes = [
     Route("/api/google/status", endpoint=api_google_status, methods=["GET"]),
     Route("/api/google/sync", endpoint=api_google_sync, methods=["POST"]),
     Route("/api/google/disconnect", endpoint=api_google_disconnect, methods=["POST"]),
+    Route("/api/google/save_credentials", endpoint=api_google_save_credentials, methods=["POST"]),
     Route("/api/school/dashboard", endpoint=api_school_dashboard, methods=["GET"]),
     Route("/api/school/study_plan_generate", endpoint=api_school_study_plan_generate, methods=["POST"]),
 ]

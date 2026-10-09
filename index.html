@@ -834,6 +834,35 @@
                     </button>
                 </div>
 
+                <!-- Real Google Account Credentials Setup -->
+                <details class="credentials-setup-box" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(66, 133, 244, 0.3); border-radius: 12px; padding: 14px 18px; margin-bottom: 20px;">
+                    <summary style="font-weight: 700; color: #60a5fa; cursor: pointer; display: flex; align-items: center; justify-content: space-between;">
+                        <span><i class="fa-solid fa-key" style="color: #facc15;"></i> Link Real Gmail / Google Account (OAuth Keys)</span>
+                        <small style="color: #94a3b8; font-weight: 400;">Setup</small>
+                    </summary>
+                    <div style="margin-top: 14px;">
+                        <p style="font-size: 0.82rem; color: #cbd5e1; margin-bottom: 10px;">
+                            To connect your <strong>real Google / Gmail account</strong>, enter your free Google OAuth Client ID and Secret from <a href="https://console.cloud.google.com/apis/credentials" target="_blank" style="color: #38bdf8; text-decoration: underline;">Google Cloud Console</a>.
+                        </p>
+                        <div style="display: flex; flex-direction: column; gap: 10px;">
+                            <div>
+                                <label style="font-size: 0.8rem; color: #94a3b8; display: block; margin-bottom: 4px;">Google Client ID:</label>
+                                <input type="text" id="googleClientIdInput" class="form-input" placeholder="e.g. 123456789-abc.apps.googleusercontent.com" style="font-size: 0.85rem;">
+                            </div>
+                            <div>
+                                <label style="font-size: 0.8rem; color: #94a3b8; display: block; margin-bottom: 4px;">Google Client Secret:</label>
+                                <input type="password" id="googleClientSecretInput" class="form-input" placeholder="e.g. GOCSPX-abc123xyz..." style="font-size: 0.85rem;">
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px;">
+                                <small style="color: #94a3b8; font-size: 0.76rem;">Authorized redirect URI: <code style="color: #facc15;">http://localhost:8000/api/google/callback</code></small>
+                                <button type="button" class="btn btn-sm" onclick="saveGoogleCredentials()" style="background: #4285f4; color: #fff; font-weight: 700; border: none; border-radius: 8px; padding: 6px 16px;">
+                                    Save Keys & Sign In with Gmail
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </details>
+
                 <!-- Service Connection Cards Grid -->
                 <div class="services-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 20px;">
                     
