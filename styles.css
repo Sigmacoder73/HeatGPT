@@ -1273,7 +1273,6 @@ button {
     text-align: center;
 }
 
-/* Modal Overlay Base */
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -1286,6 +1285,8 @@ button {
     align-items: center;
     justify-content: center;
     z-index: 99999;
+    padding: 20px;
+    overflow-y: auto;
 }
 
 .modal-overlay.active { display: flex !important; z-index: 99999 !important; }
@@ -1296,6 +1297,8 @@ button {
     border-radius: var(--radius-lg);
     width: 100%;
     max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
     padding: 24px;
     display: flex;
     flex-direction: column;
@@ -1304,6 +1307,12 @@ button {
     position: relative;
     z-index: 100000 !important;
     pointer-events: auto !important;
+}
+
+.modal-card.modal-large {
+    max-width: 760px;
+    max-height: 90vh;
+    overflow-y: auto;
 }
 
 .modal-header {

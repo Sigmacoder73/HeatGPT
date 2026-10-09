@@ -1598,9 +1598,13 @@ async def api_school_dashboard(request):
                 "percentage": pct
             })
 
+        tokens = store.get("tokens", {})
+        is_demo = (tokens.get("access_token") == "demo_token") or (not tokens.get("access_token"))
+
         return JSONResponse({
             "status": "ok",
-            "connected": bool(store.get("tokens") or items),
+            "connected": bool(tokens.get("access_token") or items),
+            "is_demo_mode": is_demo,
             "user_info": store.get("user_info", {}),
             "last_synced": store.get("last_synced", "Never"),
             "items": items,

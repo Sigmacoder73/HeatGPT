@@ -2287,7 +2287,15 @@ window.loadAcademicDashboard = async function() {
         const priorityFeed = document.getElementById('dashPriorityFeed');
         const subjectFeed = document.getElementById('dashSubjectFeed');
 
-        if (studentName) studentName.innerText = (data.user_info && data.user_info.name) ? data.user_info.name : 'Student';
+        if (studentName) {
+            const nameStr = (data.user_info && data.user_info.name) ? data.user_info.name : 'Student';
+            const emailStr = (data.user_info && data.user_info.email) ? ` (${data.user_info.email})` : '';
+            const isDemo = data.is_demo_mode;
+            const badgeHtml = isDemo 
+                ? `<span style="font-size: 0.72rem; padding: 3px 8px; border-radius: 10px; background: rgba(234, 179, 8, 0.2); color: #facc15; border: 1px solid rgba(234, 179, 8, 0.4); margin-left: 8px;">⚡ Demo Mode Active</span>`
+                : `<span style="font-size: 0.72rem; padding: 3px 8px; border-radius: 10px; background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); margin-left: 8px;">🌐 Live Google Account</span>`;
+            studentName.innerHTML = `${escapeHtml(nameStr)}${escapeHtml(emailStr)} ${badgeHtml}`;
+        }
         if (completed) completed.innerText = data.metrics.completed;
         if (inProgress) inProgress.innerText = data.metrics.in_progress;
         if (overdue) overdue.innerText = data.metrics.overdue;
