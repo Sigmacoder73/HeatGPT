@@ -823,12 +823,39 @@
                     Securely link your Google School services so HeatGPT can automatically organize your assignments, tests, deadlines, and teacher announcements into a personal AI study hub.
                 </p>
 
-                <!-- 1-Click Google Account Sign In Button -->
-                <div style="background: linear-gradient(135deg, rgba(66, 133, 244, 0.18), rgba(52, 168, 83, 0.18)); border: 1px solid rgba(66, 133, 244, 0.45); border-radius: 12px; padding: 16px 20px; margin-bottom: 20px; text-align: center;">
-                    <button type="button" class="btn btn-lg btn-block" onclick="connectGoogleService('all')" style="background: linear-gradient(135deg, #4285f4, #34a853); color: #fff; font-weight: 800; font-size: 1.05rem; border: none; border-radius: 10px; padding: 12px 24px; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 4px 15px rgba(66, 133, 244, 0.4); cursor: pointer; width: 100%;">
-                        <i class="fa-brands fa-google" style="font-size: 1.3rem;"></i> 🌐 1-Click Sign In with Google / Gmail
-                    </button>
-                    <small style="color: #cbd5e1; display: block; margin-top: 8px; font-size: 0.8rem;">Clicking will open Google's official sign-in screen to securely link your Classroom & Calendar.</small>
+                <!-- Google Sign In Buttons Grid -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin-bottom: 20px;">
+                    <!-- 1-Click Google / Gmail Sign In -->
+                    <div style="background: linear-gradient(135deg, rgba(66, 133, 244, 0.18), rgba(52, 168, 83, 0.18)); border: 1px solid rgba(66, 133, 244, 0.45); border-radius: 12px; padding: 14px 18px; text-align: center;">
+                        <button type="button" class="btn btn-block" onclick="connectGoogleService('all')" style="background: linear-gradient(135deg, #4285f4, #34a853); color: #fff; font-weight: 800; font-size: 0.95rem; border: none; border-radius: 10px; padding: 10px 18px; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 15px rgba(66, 133, 244, 0.4); cursor: pointer; width: 100%;">
+                            <i class="fa-brands fa-google" style="font-size: 1.1rem;"></i> 🌐 1-Click Sign In (All Services)
+                        </button>
+                        <small style="color: #cbd5e1; display: block; margin-top: 6px; font-size: 0.78rem;">Classroom, Calendar & Gmail integration</small>
+                    </div>
+
+                    <!-- GCR Specific School Sign In -->
+                    <div style="background: linear-gradient(135deg, rgba(52, 168, 83, 0.18), rgba(244, 180, 26, 0.18)); border: 1px solid rgba(52, 168, 83, 0.45); border-radius: 12px; padding: 14px 18px; text-align: center;">
+                        <button type="button" class="btn btn-block" onclick="connectGoogleService('classroom')" style="background: linear-gradient(135deg, #34a853, #f4b41a); color: #000; font-weight: 800; font-size: 0.95rem; border: none; border-radius: 10px; padding: 10px 18px; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 15px rgba(52, 168, 83, 0.4); cursor: pointer; width: 100%;">
+                            <i class="fa-solid fa-graduation-cap" style="font-size: 1.1rem;"></i> 🎓 Sign In with School Account (@school.edu)
+                        </button>
+                        <small style="color: #cbd5e1; display: block; margin-top: 6px; font-size: 0.78rem;">Minimal read-only scopes for Google Classroom</small>
+                    </div>
+                </div>
+
+                <!-- 🔗 Direct GCR Link / Coursework Import Card -->
+                <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(52, 168, 83, 0.4); border-radius: 12px; padding: 14px 18px; margin-bottom: 20px;">
+                    <strong style="color: #34d399; font-size: 0.92rem; display: block; margin-bottom: 6px;">
+                        <i class="fa-solid fa-link"></i> 🔗 Direct GCR Coursework / Link Import
+                    </strong>
+                    <p style="font-size: 0.8rem; color: #cbd5e1; margin-bottom: 10px;">
+                        Paste any Google Classroom assignment URL or copied assignment text below. HeatGPT AI will extract due dates, descriptions, and subjects instantly into your dashboard.
+                    </p>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="gcrLinkInput" class="form-input" placeholder="Paste Google Classroom URL or coursework text (e.g. https://classroom.google.com/c/...)" style="font-size: 0.85rem; flex: 1;">
+                        <button type="button" class="btn btn-sm" id="btnImportGcrLink" onclick="importGcrLink()" style="background: #34a853; color: #fff; font-weight: 800; border: none; border-radius: 8px; padding: 8px 16px; white-space: nowrap;">
+                            Import Coursework
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Instant Demo Mode Shortcut Banner -->

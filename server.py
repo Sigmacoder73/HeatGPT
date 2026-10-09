@@ -1004,9 +1004,20 @@ GOOGLE_SCOPES = [
     "https://www.googleapis.com/auth/userinfo.profile",
     "https://www.googleapis.com/auth/classroom.courses.readonly",
     "https://www.googleapis.com/auth/classroom.coursework.me.readonly",
+    "https://www.googleapis.com/auth/classroom.student-submissions.me.readonly",
     "https://www.googleapis.com/auth/classroom.announcements.readonly",
     "https://www.googleapis.com/auth/calendar.events.readonly",
     "https://www.googleapis.com/auth/gmail.readonly"
+]
+
+GOOGLE_GCR_SCOPES = [
+    "openid",
+    "https://www.googleapis.com/auth/userinfo.email",
+    "https://www.googleapis.com/auth/userinfo.profile",
+    "https://www.googleapis.com/auth/classroom.courses.readonly",
+    "https://www.googleapis.com/auth/classroom.coursework.me.readonly",
+    "https://www.googleapis.com/auth/classroom.student-submissions.me.readonly",
+    "https://www.googleapis.com/auth/classroom.announcements.readonly"
 ]
 
 STORE_FILE = "google_academic_store.json"
@@ -1365,7 +1376,8 @@ async def api_google_auth_url(request):
             })
 
         redirect_uri = os.environ.get("GOOGLE_REDIRECT_URI", "http://localhost:8000/api/google/callback")
-        scope_str = " ".join(GOOGLE_SCOPES)
+        scopes_to_use = GOOGLE_GCR_SCOPES if service in ['classroom', 'gcr', 'school'] else GOOGLE_SCOPES
+        scope_str = " ".join(scopes_to_use)
         params = {
             "response_type": "code",
             "client_id": cid,
@@ -1663,6 +1675,92 @@ async def api_school_study_plan_generate(request):
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
 
+async def api_school_import_gcr_link(request):
+    try:
+        body = await request.json()
+        input_text = body.get("input_text", "").strip()
+        if not input_text:
+            return JSONResponse({"error": "Please enter a Google Classroom link or assignment text."}, status_code=400)
+
+        api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+
+        page_text = ""
+        if input_text.startswith("http://") or input_text.startswith("https://"):
+            page_text = fetch_url_text(input_text, max_chars=3000)
+
+        full_context = f"URL / Input: {input_text}\nFetched Web Content: {page_text}" if page_text else input_text
+
+        prompt = (
+            f"You are HeatGPT GCR Coursework Extractor 🎓.\n"
+            f"Extract academic assignment details from the following Google Classroom link or coursework text:\n\n"
+            f"{full_context}\n\n"
+            f"Respond ONLY with valid JSON in this exact structure without markdown code blocks:\n"
+            f"{{\n"
+            f'  "title": "Assignment title",\n'
+            f'  "subject": "Course or Subject name (e.g. Science, Math, History, CS)",\n'
+            f'  "dueDate": "ISO 8601 date string like 2026-10-15T23:59:00Z or null if unknown",\n'
+            f'  "description": "Short summary of assignment instructions",\n'
+            f'  "status": "NOT_SUBMITTED"\n'
+            f"}}\n"
+        )
+
+        item_data = None
+        if api_key:
+            from google import genai
+            client = genai.Client(api_key=api_key)
+            for model in ["gemini-3.5-flash", "gemini-3.6-flash", "gemini-3.7-flash"]:
+                try:
+                    res = client.models.generate_content(model=model, contents=prompt)
+                    raw_text = res.text.strip()
+                    raw_text = re.sub(r"^```json\s*", "", raw_text, flags=re.MULTILINE)
+                    raw_text = re.sub(r"^```\s*", "", raw_text, flags=re.MULTILINE)
+                    item_data = json.loads(raw_text.strip())
+                    break
+                except Exception as ex:
+                    print(f"GCR import Gemini error with {model}: {ex}")
+                    continue
+
+        if not item_data:
+            title = "Imported GCR Assignment"
+            if len(input_text) < 100 and not input_text.startswith("http"):
+                title = input_text
+            item_data = {
+                "title": title,
+                "subject": "General",
+                "dueDate": None,
+                "description": input_text,
+                "status": "NOT_SUBMITTED"
+            }
+
+        import time
+        import uuid
+        now_iso = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+        new_item = {
+            "id": f"gcr_imported_{uuid.uuid4().hex[:8]}",
+            "type": "assignment",
+            "title": item_data.get("title", "Imported GCR Task"),
+            "subject": item_data.get("subject", "General"),
+            "description": item_data.get("description", ""),
+            "dueDate": item_data.get("dueDate"),
+            "status": item_data.get("status", "NOT_SUBMITTED"),
+            "source": "google_classroom",
+            "sourceId": f"link_{uuid.uuid4().hex[:6]}",
+            "sourceUrl": input_text if input_text.startswith("http") else "https://classroom.google.com",
+            "lastSynced": now_iso
+        }
+
+        GLOBAL_ACADEMIC_STORE["items"].insert(0, new_item)
+        GLOBAL_ACADEMIC_STORE["last_synced"] = now_iso
+        save_academic_store(GLOBAL_ACADEMIC_STORE)
+
+        return JSONResponse({
+            "status": "ok",
+            "message": f"Successfully imported GCR Assignment: '{new_item['title']}' ({new_item['subject']})",
+            "item": new_item
+        })
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
 async def serve_index(request):
     return FileResponse("index.html")
 
@@ -1706,6 +1804,7 @@ routes = [
     Route("/api/google/save_credentials", endpoint=api_google_save_credentials, methods=["POST"]),
     Route("/api/school/dashboard", endpoint=api_school_dashboard, methods=["GET"]),
     Route("/api/school/study_plan_generate", endpoint=api_school_study_plan_generate, methods=["POST"]),
+    Route("/api/school/import_gcr_link", endpoint=api_school_import_gcr_link, methods=["POST"]),
 ]
 
 middleware = [

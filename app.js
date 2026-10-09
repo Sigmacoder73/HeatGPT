@@ -2176,6 +2176,43 @@ window.saveGoogleCredentials = async function() {
     }
 };
 
+window.importGcrLink = async function() {
+    const input = document.getElementById('gcrLinkInput');
+    const val = input ? input.value.trim() : '';
+    if (!val) {
+        alert("Please enter a Google Classroom link or assignment text.");
+        return;
+    }
+    const btn = document.getElementById('btnImportGcrLink');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerText = "Importing...";
+    }
+    try {
+        const res = await fetch('/api/school/import_gcr_link', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ input_text: val })
+        });
+        const data = await res.json();
+        if (data.status === 'ok') {
+            if (input) input.value = '';
+            alert("✓ " + data.message);
+            window.loadGoogleStatus();
+            window.openAcademicDashboardModal();
+        } else {
+            alert("Import error: " + (data.error || "Could not parse coursework."));
+        }
+    } catch (e) {
+        alert("Network error importing coursework: " + e.message);
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerText = "Import Coursework";
+        }
+    }
+};
+
 window.loadGoogleStatus = async function() {
     try {
         const res = await fetch('/api/google/status');
