@@ -1115,10 +1115,16 @@
                 <button type="button" class="modal-close" onclick="closeSettingsModal()">&times;</button>
             </div>
             <div class="modal-body">
-                <div class="form-group">
-                    <label for="apiKeyInput">Google Gemini API Key</label>
-                    <input type="password" id="apiKeyInput" class="form-input" placeholder="Enter your Gemini API key (Configured in server .env)">
-                    <small class="form-help">Saved automatically in your server configuration and local browser storage.</small>
+                <div class="form-group" style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 10px; padding: 12px 14px; margin-bottom: 14px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                        <span style="font-weight: 600; font-size: 0.9rem; color: #10b981; display: flex; align-items: center; gap: 8px;">
+                            <i class="fa-solid fa-shield-halved"></i> Official HeatGPT Gemini AI Engine
+                        </span>
+                        <span style="font-size: 0.72rem; padding: 2px 8px; border-radius: 12px; background: rgba(16, 185, 129, 0.2); color: #34d399; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Permanent & Active</span>
+                    </div>
+                    <p style="font-size: 0.8rem; color: var(--text-secondary); margin: 0; line-height: 1.4;">
+                        Pre-configured with official Google Gemini AI. Key management is locked and managed centrally by HeatGPT.
+                    </p>
                 </div>
 
                 <!-- Natural Voice Selection Options -->

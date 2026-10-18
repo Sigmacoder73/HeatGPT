@@ -334,7 +334,6 @@ window.sendMessage = async function() {
     const personaKey = personaSelect ? personaSelect.value : 'default';
     const personaText = window.PERSONAS[personaKey] || window.PERSONAS.default;
     const systemPrompt = customPrompt ? `${personaText}\n\nCustom User Instruction: ${customPrompt}` : personaText;
-    const apiKey = localStorage.getItem('gemini_api_key_v1') || '';
 
     try {
         const response = await fetch('/api/chat', {
@@ -347,7 +346,6 @@ window.sendMessage = async function() {
                 model: modelSelect ? modelSelect.value : 'gemini-3.5-flash',
                 persona: personaKey,
                 system_prompt: systemPrompt,
-                api_key: apiKey,
                 tasks: window.getTasks()
             })
         });
@@ -936,7 +934,6 @@ window.generatePodcastEpisode = async function() {
     const tone = toneEl ? toneEl.value : 'chill';
 
     const modelSelect = document.getElementById('modelSelect');
-    const apiKey = localStorage.getItem('gemini_api_key_v1') || '';
 
     window.closePodcastModal();
     const modal = document.getElementById('podcastPlayerModal');
@@ -974,8 +971,7 @@ window.generatePodcastEpisode = async function() {
                 format, 
                 length, 
                 tone, 
-                model: modelSelect ? modelSelect.value : 'gemini-3.5-flash', 
-                api_key: apiKey 
+                model: modelSelect ? modelSelect.value : 'gemini-3.5-flash'
             })
         });
 
@@ -1267,7 +1263,6 @@ window.generateFlashcards = async function() {
     const difficulty = diffEl ? diffEl.value : 'Intermediate';
     
     const modelSelect = document.getElementById('modelSelect');
-    const apiKey = localStorage.getItem('gemini_api_key_v1') || '';
 
     window.closeFlashcardsModal();
     const modal = document.getElementById('interactiveFlashcardModal');
@@ -1292,8 +1287,7 @@ window.generateFlashcards = async function() {
                 topic, 
                 count, 
                 difficulty,
-                model: modelSelect ? modelSelect.value : 'gemini-2.5-flash', 
-                api_key: apiKey 
+                model: modelSelect ? modelSelect.value : 'gemini-2.5-flash'
             })
         });
 
@@ -1336,7 +1330,6 @@ window.generateQuiz = async function() {
     const long_questions = document.getElementById('quizLong') ? document.getElementById('quizLong').value : 1;
     const difficulty = document.getElementById('quizDifficulty') ? document.getElementById('quizDifficulty').value : 'Intermediate';
     const modelSelect = document.getElementById('modelSelect');
-    const apiKey = localStorage.getItem('gemini_api_key_v1') || '';
 
     window.closeQuizModal();
     const modal = document.getElementById('interactiveQuizModal');
@@ -1368,8 +1361,7 @@ window.generateQuiz = async function() {
                 difficulty,
                 image_data: window.quizBase64Image || '',
                 image_name: window.quizImageFileName || '',
-                model: modelSelect ? modelSelect.value : 'gemini-2.5-flash', 
-                api_key: apiKey 
+                model: modelSelect ? modelSelect.value : 'gemini-2.5-flash'
             })
         });
         const json = await res.json();
@@ -1483,7 +1475,6 @@ window.submitQuizForGrading = async function() {
     const btn = document.getElementById('submitQuizForGradingBtn');
     const feed = document.getElementById('quizQuestionsFeed');
     const modelSelect = document.getElementById('modelSelect');
-    const apiKey = localStorage.getItem('gemini_api_key_v1') || '';
 
     if (btn) {
         btn.disabled = true;
@@ -1520,8 +1511,7 @@ window.submitQuizForGrading = async function() {
                 type: 'quiz',
                 quiz_data: window.currentQuizData,
                 answers: studentAnswers,
-                model: modelSelect ? modelSelect.value : 'gemini-3.5-flash',
-                api_key: apiKey
+                model: modelSelect ? modelSelect.value : 'gemini-3.5-flash'
             })
         });
         const json = await res.json();
@@ -1854,13 +1844,11 @@ window.closeSettingsModal = function() {
 };
 
 window.saveSettings = function() {
-    const apiInp = document.getElementById('apiKeyInput');
     const sysInp = document.getElementById('customSystemPromptInput');
     const voiceSelect = document.getElementById('voiceSelect');
     const voiceSpeed = document.getElementById('voiceSpeed');
     const voicePitch = document.getElementById('voicePitch');
 
-    if (apiInp) localStorage.setItem('gemini_api_key_v1', apiInp.value.trim());
     if (sysInp) localStorage.setItem('custom_system_prompt_v1', sysInp.value.trim());
     
     if (voiceSelect) {
@@ -1965,12 +1953,10 @@ document.addEventListener('DOMContentLoaded', () => {
         window.renderActiveSession();
     }
 
-    const apiKey = localStorage.getItem('gemini_api_key_v1') || '';
+    localStorage.removeItem('gemini_api_key_v1');
     const customPrompt = localStorage.getItem('custom_system_prompt_v1') || '';
-    const apiInp = document.getElementById('apiKeyInput');
     const sysInp = document.getElementById('customSystemPromptInput');
 
-    if (apiInp && apiKey) apiInp.value = apiKey;
     if (sysInp && customPrompt) sysInp.value = customPrompt;
 
     window.populateVoiceDropdown();
