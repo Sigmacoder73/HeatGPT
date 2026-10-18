@@ -220,6 +220,175 @@ async def api_health(request):
         "api_key_configured": api_key_set
     })
 
+def extract_file_content(att: Dict[str, Any]) -> tuple[Optional[Any], str]:
+    """
+    Extracts multimodal Part and/or formatted text from an uploaded attachment.
+    Supports PDF, Word (.docx/.doc), Excel (.xlsx/.xls/.csv/.tsv), PowerPoint (.pptx),
+    Images (.png/.jpg/.webp/etc.), and all Code/Text files.
+    """
+    from google.genai import types
+    
+    filename = att.get("name", "Document")
+    ext = filename.split(".")[-1].lower() if "." in filename else ""
+    att_type = str(att.get("type", "")).lower()
+    mime_type = str(att.get("mime_type", "")).lower()
+    att_data = att.get("data", "")
+    text_content = att.get("text_content", "")
+    
+    file_bytes = b""
+    if att_data and isinstance(att_data, str) and "," in att_data:
+        try:
+            _, b64_str = att_data.split(",", 1)
+            file_bytes = base64.b64decode(b64_str)
+        except Exception as b64_err:
+            print(f"Base64 decode error for {filename}: {b64_err}")
+    elif att_data and isinstance(att_data, str) and not att_data.startswith("http"):
+        try:
+            file_bytes = base64.b64decode(att_data)
+        except Exception:
+            pass
+
+    # 1. IMAGES (png, jpg, jpeg, webp, gif, bmp, svg)
+    if att_type == "image" or ext in ["png", "jpg", "jpeg", "webp", "gif", "bmp", "svg"] or "image/" in mime_type:
+        if file_bytes:
+            m_type = mime_type if "image/" in mime_type else f"image/{'jpeg' if ext in ['jpg', 'jpeg'] else (ext if ext else 'png')}"
+            part = types.Part.from_bytes(data=file_bytes, mime_type=m_type)
+            return part, f"\n\n[Attached Image: {filename}]\n"
+
+    # 2. PDF DOCUMENTS (.pdf)
+    if att_type == "pdf" or ext == "pdf" or "pdf" in mime_type:
+        extracted_pages = []
+        page_count = 0
+        if file_bytes:
+            try:
+                import pypdf
+                reader = pypdf.PdfReader(io.BytesIO(file_bytes))
+                page_count = len(reader.pages)
+                for idx, page in enumerate(reader.pages):
+                    t = page.extract_text()
+                    if t and t.strip():
+                        extracted_pages.append(f"--- [Page {idx+1}] ---\n{t.strip()}")
+            except Exception as pe:
+                print(f"pypdf extraction error for {filename}: {pe}")
+            
+            summary_text = "\n\n".join(extracted_pages).strip()
+            total_pages_str = f"{page_count} pages" if page_count else f"{len(extracted_pages)} pages"
+            text_block = (
+                f"\n\n=== ATTACHED PDF DOCUMENT: {filename} ({total_pages_str}) ===\n"
+                f"{summary_text}\n"
+                f"=== END PDF DOCUMENT: {filename} ===\n"
+            ) if summary_text else f"\n\n[Attached PDF Document: {filename}]\n"
+            
+            pdf_part = types.Part.from_bytes(data=file_bytes, mime_type="application/pdf")
+            return pdf_part, text_block
+
+    # 3. WORD DOCUMENTS (.docx / .doc)
+    if att_type == "document" or ext in ["docx", "doc"] or "word" in mime_type:
+        extracted_paras = []
+        if file_bytes:
+            try:
+                import docx
+                doc = docx.Document(io.BytesIO(file_bytes))
+                for p in doc.paragraphs:
+                    if p.text.strip():
+                        extracted_paras.append(p.text.strip())
+                for table in doc.tables:
+                    for row in table.rows:
+                        row_cells = [cell.text.strip() for cell in row.cells if cell.text.strip()]
+                        if row_cells:
+                            extracted_paras.append(" | ".join(row_cells))
+            except Exception as de:
+                print(f"python-docx extraction error for {filename}: {de}")
+                try:
+                    import zipfile, xml.etree.ElementTree as ET
+                    with zipfile.ZipFile(io.BytesIO(file_bytes)) as z:
+                        xml_content = z.read("word/document.xml")
+                        tree = ET.fromstring(xml_content)
+                        texts = [node.text for node in tree.iter() if node.text and node.text.strip()]
+                        extracted_paras = [" ".join(texts).strip()]
+                except Exception as ze:
+                    print(f"docx xml fallback error: {ze}")
+        
+        doc_text = "\n\n".join(extracted_paras).strip()
+        text_block = (
+            f"\n\n=== ATTACHED WORD DOCUMENT: {filename} ===\n"
+            f"{doc_text}\n"
+            f"=== END WORD DOCUMENT: {filename} ===\n"
+        ) if doc_text else f"\n\n[Attached Word Document: {filename}]\n"
+        return None, text_block
+
+    # 4. EXCEL SPREADSHEETS (.xlsx / .xls / .csv / .tsv)
+    if att_type == "spreadsheet" or ext in ["xlsx", "xls", "csv", "tsv"] or "spreadsheet" in mime_type or "excel" in mime_type:
+        sheets_data = []
+        if ext in ["csv", "tsv"]:
+            if text_content:
+                sheets_data.append(text_content)
+            elif file_bytes:
+                try:
+                    sheets_data.append(file_bytes.decode('utf-8', errors='replace'))
+                except Exception:
+                    pass
+        elif file_bytes:
+            try:
+                import openpyxl
+                wb = openpyxl.load_workbook(io.BytesIO(file_bytes), data_only=True)
+                for sheet in wb.worksheets:
+                    rows_out = []
+                    for row in sheet.iter_rows(values_only=True):
+                        if any(c is not None for c in row):
+                            row_str = " | ".join(str(c) if c is not None else "" for c in row)
+                            rows_out.append(row_str)
+                    if rows_out:
+                        sheets_data.append(f"### Sheet: {sheet.title}\n" + "\n".join(rows_out[:250]))
+            except Exception as ee:
+                print(f"openpyxl extraction error for {filename}: {ee}")
+        
+        sheet_text = "\n\n".join(sheets_data).strip()
+        text_block = (
+            f"\n\n=== ATTACHED SPREADSHEET: {filename} ===\n"
+            f"{sheet_text}\n"
+            f"=== END SPREADSHEET: {filename} ===\n"
+        ) if sheet_text else f"\n\n[Attached Spreadsheet: {filename}]\n"
+        return None, text_block
+
+    # 5. POWERPOINT PRESENTATIONS (.pptx)
+    if att_type == "presentation" or ext in ["pptx", "ppt"] or "presentation" in mime_type:
+        slides_out = []
+        if file_bytes:
+            try:
+                import zipfile, xml.etree.ElementTree as ET
+                with zipfile.ZipFile(io.BytesIO(file_bytes)) as z:
+                    slide_files = sorted([f for f in z.namelist() if f.startswith("ppt/slides/slide") and f.endswith(".xml")])
+                    for s_idx, sf in enumerate(slide_files, 1):
+                        tree = ET.fromstring(z.read(sf))
+                        texts = [node.text for node in tree.iter() if node.text and node.text.strip()]
+                        if texts:
+                            slides_out.append(f"--- [Slide {s_idx}] ---\n" + " ".join(texts).strip())
+            except Exception as pe:
+                print(f"pptx extraction error for {filename}: {pe}")
+        
+        ppt_text = "\n\n".join(slides_out).strip()
+        text_block = (
+            f"\n\n=== ATTACHED PRESENTATION: {filename} ===\n"
+            f"{ppt_text}\n"
+            f"=== END PRESENTATION: {filename} ===\n"
+        ) if ppt_text else f"\n\n[Attached Presentation: {filename}]\n"
+        return None, text_block
+
+    # 6. TEXT & CODE FILES
+    if text_content:
+        text_block = f"\n\n=== ATTACHED FILE: {filename} ===\n{text_content}\n=== END FILE: {filename} ===\n"
+        return None, text_block
+    elif file_bytes:
+        try:
+            decoded_text = file_bytes.decode('utf-8', errors='replace')
+            text_block = f"\n\n=== ATTACHED FILE: {filename} ===\n{decoded_text}\n=== END FILE: {filename} ===\n"
+            return None, text_block
+        except Exception:
+            pass
+
+    return None, f"\n\n[Attached Document: {filename}]\n"
+
 async def api_chat(request):
     try:
         body = await request.json()
@@ -260,12 +429,14 @@ async def api_chat(request):
                 break
 
         # 0. 🎨 & 🎬 AI PHOTO & VIDEO GENERATION DETECTOR (POWERED BY GEMINI AI)
+        # Note: If user uploaded attachments (documents, files, images), do not trigger video/image generation!
+        has_attachments = bool(last_attachments)
         msg_lower = last_user_msg.lower().strip()
-        is_video_req = any(k in msg_lower for k in [
+        is_video_req = (not has_attachments) and any(k in msg_lower for k in [
             "generate video", "make a video", "create a video", "create video", "generate a video", 
             "video of", "produce a video", "render video", "show me a video", "/video", "generate video of"
         ])
-        is_image_req = any(k in msg_lower for k in [
+        is_image_req = (not has_attachments) and any(k in msg_lower for k in [
             "generate photo", "generate image", "create photo", "create image", "make a photo", "make an image",
             "draw ", "draw a", "paint ", "picture of", "photo of", "image of", "show me a photo", "show me an image",
             "/image", "/photo", "/draw", "generate an image", "generate a picture", "make a picture"
@@ -510,32 +681,42 @@ async def api_chat(request):
                 parts = []
                 
                 msg_attachments = msg.get("attachments", [])
+                extracted_texts = []
                 for att in msg_attachments:
-                    att_type = att.get("type")
-                    att_data = att.get("data", "")
-                    mime_type = att.get("mime_type", "image/png")
-                    filename = att.get("name", "Document")
+                    try:
+                        part, text_chunk = extract_file_content(att)
+                        if part:
+                            parts.append(part)
+                        if text_chunk:
+                            extracted_texts.append(text_chunk)
+                    except Exception as fe:
+                        print(f"Error parsing attachment {att.get('name')}: {fe}")
+                        if att.get("text_content"):
+                            extracted_texts.append(f"\n\n--- ATTACHED FILE: {att.get('name')} ---\n{att['text_content']}\n")
 
-                    if att_type == "image" and att_data:
-                        try:
-                            header, b64_str = att_data.split(",", 1) if "," in att_data else ("", att_data)
-                            img_bytes = base64.b64decode(b64_str)
-                            parts.append(types.Part.from_bytes(data=img_bytes, mime_type=mime_type))
-                        except Exception as img_err:
-                            print(f"Image decode error: {img_err}")
-                    elif att_type == "file" and att.get("text_content"):
-                        file_block = f"\n\n--- ATTACHED DOCUMENT: {filename} ---\n{att['text_content']}\n--- END ATTACHED DOCUMENT ---\n"
-                        parts.append(types.Part.from_text(text=file_block))
+                combined_docs = "\n\n".join(extracted_texts).strip()
+                if combined_docs:
+                    parts.append(types.Part.from_text(text=combined_docs))
 
-                text_val = msg.get("content", "")
-                if text_val or not parts:
-                    parts.append(types.Part.from_text(text=text_val if text_val else "Analyze the attached image/file."))
+                text_val = msg.get("content", "").strip()
+                if text_val:
+                    parts.append(types.Part.from_text(text=text_val))
+                elif not text_val and parts:
+                    parts.append(types.Part.from_text(text="Please thoroughly read, analyze, and explain the contents of the attached file/document."))
+                elif not text_val and not parts:
+                    parts.append(types.Part.from_text(text="Hello!"))
                 
                 contents.append(types.Content(role=role, parts=parts))
 
+            # Build prioritized candidate model list with user's selected model first
+            active_models = [req_model] if req_model else []
+            for m in ["gemini-3.5-flash", "gemini-3.6-flash", "gemini-3.7-flash", "gemini-2.5-flash"]:
+                if m not in active_models:
+                    active_models.append(m)
+
             last_err = None
             success = False
-            for model in candidate_models:
+            for model in active_models:
                 try:
                     response = client.models.generate_content_stream(
                         model=model,
@@ -732,22 +913,26 @@ async def api_study_generate(request):
         parts = []
 
         if image_data:
+            att_mock = {
+                "name": body.get("image_name", "Study_Material"),
+                "data": image_data,
+                "mime_type": "application/pdf" if ("data:application/pdf" in image_data or "pdf" in body.get("image_name", "").lower()) else "image/png"
+            }
             try:
-                header, b64_str = image_data.split(",", 1) if "," in image_data else ("", image_data)
-                mime_type = "image/png"
-                if "data:image/jpeg" in header: mime_type = "image/jpeg"
-                elif "data:image/webp" in header: mime_type = "image/webp"
-                img_bytes = base64.b64decode(b64_str)
-                parts.append(types.Part.from_bytes(data=img_bytes, mime_type=mime_type))
-            except Exception as img_err:
-                print(f"Quiz image decode error: {img_err}")
+                part, text_chunk = extract_file_content(att_mock)
+                if part:
+                    parts.append(part)
+                if text_chunk:
+                    parts.append(types.Part.from_text(text=text_chunk))
+            except Exception as att_err:
+                print(f"Quiz file decode error: {att_err}")
 
         if tool_type == "flashcards":
             count = int(body.get("count", 5))
             prompt_text = (
                 f"You are Gemini HeatGPT Study Buddy 🧠📚.\n"
                 f"Generate exactly {count} distinct, authentic flashcards for topic: '{topic}' at difficulty level: '{difficulty}'.\n"
-                f"If an image is attached, inspect the image/diagram/notes carefully and generate flashcards strictly based on its visual contents!\n\n"
+                f"If a document, PDF, textbook page, diagram, or notes are attached, inspect the full contents carefully and generate flashcards strictly based on its visual and text contents!\n\n"
                 f"Respond ONLY with valid JSON array without markdown formatting:\n"
                 f"[\n"
                 f'  {{"id": 1, "question": "Question text?", "answer": "Detailed answer definition", "hint": "Short clue"}}\n'
@@ -762,7 +947,7 @@ async def api_study_generate(request):
             prompt_text = (
                 f"You are Gemini HeatGPT Exam Master 🎓.\n"
                 f"Generate a complete, highly detailed custom quiz for topic: '{topic}' at difficulty level: '{difficulty}'.\n"
-                f"If an image is attached (such as a textbook page, diagram, formula sheet, or notes), inspect the image carefully and generate quiz questions based on the image contents!\n\n"
+                f"If a document, PDF, textbook page, diagram, or notes are attached, inspect the full contents carefully and generate quiz questions based on the document/notes contents!\n\n"
                 f"Respond ONLY with valid JSON in this exact structure without markdown code blocks:\n"
                 f"{{\n"
                 f'  "mcqs": [{{"id": 1, "question": "MCQ Question 1?", "options": ["Option A", "Option B", "Option C", "Option D"], "correct": "Option A exact text", "explanation": "Why Option A is correct"}}],\n'

@@ -310,7 +310,7 @@
                     <div class="input-actions-bar">
                         <div class="input-left-tools">
                             <!-- FILE / IMAGE UPLOAD BUTTON FOR CHATBOT -->
-                            <button type="button" class="tool-btn" id="attachFileBtn" onclick="triggerFileSelect()" title="Attach image or document (PNG, JPG, PDF, TXT, PY, CSV, etc.)">
+                            <button type="button" class="tool-btn" id="attachFileBtn" onclick="triggerFileSelect()" title="Attach files (PDF, Word, Excel, PowerPoint, Code, TXT, Images, etc.)">
                                 <i class="fa-solid fa-paperclip" style="font-size: 1.1rem; color: #f97316;"></i>
                             </button>
 
@@ -330,7 +330,7 @@
                             </button>
 
                             <!-- HIDDEN FILE INPUT FOR CHATBOT -->
-                            <input type="file" id="fileInput" accept="image/*,.pdf,.txt,.md,.py,.json,.csv,.js,.html,.css,.doc,.docx" multiple style="display:none;" onchange="handleFileSelect(event)">
+                            <input type="file" id="fileInput" accept="image/*,.pdf,.txt,.md,.markdown,.py,.js,.jsx,.ts,.tsx,.html,.css,.json,.csv,.tsv,.doc,.docx,.xlsx,.xls,.pptx,.ppt,.c,.cpp,.h,.java,.cs,.go,.rs,.php,.rb,.sql,.sh,.bat,.xml,.yaml,.yml" multiple style="display:none;" onchange="handleFileSelect(event)">
 
                             <!-- VOICE DICTATION (SPEECH TO TEXT) -->
                             <button type="button" class="tool-btn" id="voiceInputBtn" title="Voice Dictation (Speech to Text)">
@@ -572,16 +572,17 @@
             <!-- IMAGE UPLOAD BOX FOR QUIZ GENERATION -->
             <div class="form-group" style="background-color: rgba(0,0,0,0.25); border: 1px dashed rgba(239, 68, 68, 0.4); padding: 12px; border-radius: var(--radius-md);">
                 <label style="color: #ef4444; font-weight: 700; display: flex; align-items: center; gap: 8px;">
-                    <i class="fa-solid fa-image"></i>
-                    <span>Upload Image / Diagram / Notes for Quiz (Optional)</span>
+                    <i class="fa-solid fa-file-arrow-up"></i>
+                    <span>Upload Document, PDF, Notes or Image for Quiz (Optional)</span>
                 </label>
-                <input type="file" id="quizImageInput" accept="image/*" class="form-input" style="padding: 6px;" onchange="handleQuizImageSelect(event)">
+                <input type="file" id="quizImageInput" accept="image/*,.pdf,.txt,.md,.docx" class="form-input" style="padding: 6px;" onchange="handleQuizImageSelect(event)">
                 <div id="quizImagePreviewBox" style="display: none; margin-top: 8px; align-items: center; gap: 10px;">
-                    <img id="quizImageThumb" style="width: 48px; height: 48px; border-radius: 6px; object-fit: cover; border: 1px solid #ef4444;" alt="Quiz Source Image">
-                    <span id="quizImageName" style="font-size: 0.84rem; color: #f8fafc; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">image.png</span>
+                    <img id="quizImageThumb" style="width: 48px; height: 48px; border-radius: 6px; object-fit: cover; border: 1px solid #ef4444;" alt="Quiz Source Document">
+                    <i id="quizDocThumbIcon" class="fa-solid fa-file-pdf" style="display: none; font-size: 2rem; color: #ef4444;"></i>
+                    <span id="quizImageName" style="font-size: 0.84rem; color: #f8fafc; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">document.pdf</span>
                     <button type="button" onclick="clearQuizImage()" style="background: transparent; border: none; color: #ef4444; font-size: 1.2rem; cursor: pointer;">&times;</button>
                 </div>
-                <small class="form-help">Upload a textbook page, diagram, handwritten notes, or formula sheet to generate a quiz from it!</small>
+                <small class="form-help">Upload a textbook PDF, lecture notes, syllabus, diagram, or formula sheet to generate a quiz from it!</small>
             </div>
 
             <div class="form-group">

@@ -1140,6 +1140,51 @@ button {
 
 .attachment-chip-remove:hover { color: #ef4444; }
 
+.attachment-chip-size {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    white-space: nowrap;
+}
+
+.msg-attachments-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.msg-attached-img {
+    max-width: 240px;
+    max-height: 180px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    object-fit: cover;
+}
+
+.msg-attached-img:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+}
+
+.msg-attached-file {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    padding: 7px 12px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    color: #f1f5f9;
+    font-weight: 500;
+}
+
+.msg-attached-file i {
+    font-size: 1.1rem;
+}
+
 .chat-textarea {
     width: 100%;
     background: transparent;

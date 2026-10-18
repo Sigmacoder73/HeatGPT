@@ -204,10 +204,19 @@ window.appendMessageBubble = function(role, content, attachments = [], isStreami
     if (attachments && attachments.length > 0) {
         attachmentsHtml += '<div class="msg-attachments-container">';
         attachments.forEach(att => {
-            if (att.type === 'image') {
-                attachmentsHtml += `<img src="${att.data}" class="msg-attached-img" alt="Uploaded Image">`;
+            const ext = (att.name || '').split('.').pop().toLowerCase();
+            if (att.type === 'image' && att.data) {
+                attachmentsHtml += `<img src="${att.data}" class="msg-attached-img" alt="Uploaded Image" onclick="window.open('${att.data}', '_blank')">`;
+            } else if (att.type === 'pdf' || ext === 'pdf') {
+                attachmentsHtml += `<div class="msg-attached-file"><i class="fa-solid fa-file-pdf" style="color: #ef4444;"></i> <span>${escapeHtml(att.name)}</span> <small style="color: #94a3b8;">(${att.size || 'PDF'})</small></div>`;
+            } else if (att.type === 'document' || ['docx', 'doc'].includes(ext)) {
+                attachmentsHtml += `<div class="msg-attached-file"><i class="fa-solid fa-file-word" style="color: #3b82f6;"></i> <span>${escapeHtml(att.name)}</span> <small style="color: #94a3b8;">(${att.size || 'DOCX'})</small></div>`;
+            } else if (att.type === 'spreadsheet' || ['xlsx', 'xls', 'csv'].includes(ext)) {
+                attachmentsHtml += `<div class="msg-attached-file"><i class="fa-solid fa-file-excel" style="color: #10b981;"></i> <span>${escapeHtml(att.name)}</span> <small style="color: #94a3b8;">(${att.size || 'Spreadsheet'})</small></div>`;
+            } else if (att.type === 'presentation' || ['pptx', 'ppt'].includes(ext)) {
+                attachmentsHtml += `<div class="msg-attached-file"><i class="fa-solid fa-file-powerpoint" style="color: #f97316;"></i> <span>${escapeHtml(att.name)}</span> <small style="color: #94a3b8;">(${att.size || 'PPTX'})</small></div>`;
             } else {
-                attachmentsHtml += `<div class="msg-attached-file"><i class="fa-solid fa-file-code"></i> ${escapeHtml(att.name)}</div>`;
+                attachmentsHtml += `<div class="msg-attached-file"><i class="fa-solid fa-file-code" style="color: #38bdf8;"></i> <span>${escapeHtml(att.name)}</span> <small style="color: #94a3b8;">(${att.size || 'File'})</small></div>`;
             }
         });
         attachmentsHtml += '</div>';
@@ -1208,11 +1217,27 @@ window.handleQuizImageSelect = function(event) {
     const reader = new FileReader();
     reader.onload = (e) => {
         window.quizBase64Image = e.target.result;
+        window.quizImageFileName = file.name;
         const box = document.getElementById('quizImagePreviewBox');
         const thumb = document.getElementById('quizImageThumb');
+        const docIcon = document.getElementById('quizDocThumbIcon');
         const name = document.getElementById('quizImageName');
 
-        if (thumb) thumb.src = e.target.result;
+        const isImg = file.type.startsWith('image/');
+        if (thumb) {
+            if (isImg) {
+                thumb.src = e.target.result;
+                thumb.style.display = 'block';
+                if (docIcon) docIcon.style.display = 'none';
+            } else {
+                thumb.style.display = 'none';
+                if (docIcon) {
+                    docIcon.style.display = 'block';
+                    const ext = file.name.split('.').pop().toLowerCase();
+                    docIcon.className = ext === 'pdf' ? 'fa-solid fa-file-pdf' : 'fa-solid fa-file-lines';
+                }
+            }
+        }
         if (name) name.innerText = file.name;
         if (box) box.style.display = 'flex';
     };
@@ -1221,6 +1246,7 @@ window.handleQuizImageSelect = function(event) {
 
 window.clearQuizImage = function() {
     window.quizBase64Image = null;
+    window.quizImageFileName = null;
     const inp = document.getElementById('quizImageInput');
     const box = document.getElementById('quizImagePreviewBox');
     if (inp) inp.value = '';
@@ -1326,7 +1352,7 @@ window.generateQuiz = async function() {
     if (reportView) reportView.style.display = 'none';
 
     if (title) title.innerHTML = `<i class="fa-solid fa-clipboard-question" style="color: #ef4444;"></i> ${escapeHtml(topic)} Test Paper`;
-    if (subtitle) subtitle.innerText = `Gemini AI | Difficulty: ${difficulty} | ${window.quizBase64Image ? '🖼️ Source Image Attached' : 'Topic Based'}`;
+    if (subtitle) subtitle.innerText = `Gemini AI | Difficulty: ${difficulty} | ${window.quizBase64Image ? '📄 Source Document / Notes Attached' : 'Topic Based'}`;
 
     try {
         const res = await fetch('/api/study_generate', {
@@ -1341,6 +1367,7 @@ window.generateQuiz = async function() {
                 long_questions, 
                 difficulty,
                 image_data: window.quizBase64Image || '',
+                image_name: window.quizImageFileName || '',
                 model: modelSelect ? modelSelect.value : 'gemini-2.5-flash', 
                 api_key: apiKey 
             })
@@ -1561,33 +1588,73 @@ window.handleFileSelect = function(event) {
 
 window.processFiles = function(files) {
     Array.from(files).forEach(file => {
-        const isImage = file.type.startsWith('image/');
-        const reader = new FileReader();
+        const ext = file.name.split('.').pop().toLowerCase();
+        const isImage = file.type.startsWith('image/') || ['png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp', 'svg'].includes(ext);
+        const isPdf = file.type === 'application/pdf' || ext === 'pdf';
+        const isDocx = ['docx', 'doc'].includes(ext) || file.type.includes('word') || file.type.includes('officedocument.wordprocessingml');
+        const isSpreadsheet = ['xlsx', 'xls', 'csv', 'tsv'].includes(ext) || file.type.includes('spreadsheet') || file.type.includes('excel');
+        const isPptx = ['pptx', 'ppt'].includes(ext) || file.type.includes('presentation') || file.type.includes('powerpoint');
+        const textExtensions = ['txt', 'md', 'markdown', 'py', 'js', 'jsx', 'ts', 'tsx', 'html', 'htm', 'css', 'json', 'c', 'cpp', 'h', 'hpp', 'java', 'cs', 'go', 'rs', 'php', 'rb', 'sql', 'sh', 'bat', 'ps1', 'r', 'swift', 'kt', 'log', 'env', 'ini', 'toml', 'xml', 'yaml', 'yml'];
+        const isText = textExtensions.includes(ext) || file.type.startsWith('text/') || file.type === 'application/json';
+
+        const sizeFormatted = file.size > 1024 * 1024 
+            ? (file.size / (1024 * 1024)).toFixed(2) + ' MB' 
+            : (file.size / 1024).toFixed(1) + ' KB';
+
+        let category = 'file';
+        let mimeType = file.type;
 
         if (isImage) {
-            reader.onload = (e) => {
-                window.pendingAttachments.push({
-                    type: 'image',
-                    name: file.name,
-                    size: (file.size / 1024).toFixed(1) + ' KB',
-                    mime_type: file.type || 'image/png',
-                    data: e.target.result
-                });
-                window.renderAttachmentPreviews();
+            category = 'image';
+            mimeType = mimeType || 'image/png';
+        } else if (isPdf) {
+            category = 'pdf';
+            mimeType = 'application/pdf';
+        } else if (isDocx) {
+            category = 'document';
+            mimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+        } else if (isSpreadsheet) {
+            category = 'spreadsheet';
+            mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+        } else if (isPptx) {
+            category = 'presentation';
+            mimeType = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+        } else if (isText) {
+            category = 'text';
+            mimeType = mimeType || 'text/plain';
+        }
+
+        if (isText) {
+            const tr = new FileReader();
+            tr.onload = (te) => {
+                const dr = new FileReader();
+                dr.onload = (de) => {
+                    window.pendingAttachments.push({
+                        type: 'text',
+                        name: file.name,
+                        size: sizeFormatted,
+                        mime_type: mimeType,
+                        text_content: te.target.result,
+                        data: de.target.result
+                    });
+                    window.renderAttachmentPreviews();
+                };
+                dr.readAsDataURL(file);
             };
-            reader.readAsDataURL(file);
+            tr.readAsText(file);
         } else {
-            reader.onload = (e) => {
+            const dr = new FileReader();
+            dr.onload = (de) => {
                 window.pendingAttachments.push({
-                    type: 'file',
+                    type: category,
                     name: file.name,
-                    size: (file.size / 1024).toFixed(1) + ' KB',
-                    mime_type: file.type || 'text/plain',
-                    text_content: e.target.result
+                    size: sizeFormatted,
+                    mime_type: mimeType,
+                    data: de.target.result
                 });
                 window.renderAttachmentPreviews();
             };
-            reader.readAsText(file);
+            dr.readAsDataURL(file);
         }
     });
 };
@@ -1613,17 +1680,48 @@ window.renderAttachmentPreviews = function() {
     window.pendingAttachments.forEach((att, idx) => {
         const chip = document.createElement('div');
         chip.className = 'attachment-chip';
+        const ext = (att.name || '').split('.').pop().toLowerCase();
         
-        if (att.type === 'image') {
+        if (att.type === 'image' && att.data) {
             chip.innerHTML = `
                 <img src="${att.data}" class="attachment-chip-img" alt="Thumbnail">
                 <span class="attachment-chip-name">${escapeHtml(att.name)}</span>
+                <span class="attachment-chip-size">${att.size}</span>
+                <button type="button" class="attachment-chip-remove" onclick="removeAttachment(${idx})">&times;</button>
+            `;
+        } else if (att.type === 'pdf' || ext === 'pdf') {
+            chip.innerHTML = `
+                <i class="fa-solid fa-file-pdf" style="color: #ef4444; font-size: 1.2rem;"></i>
+                <span class="attachment-chip-name">${escapeHtml(att.name)}</span>
+                <span class="attachment-chip-size">${att.size}</span>
+                <button type="button" class="attachment-chip-remove" onclick="removeAttachment(${idx})">&times;</button>
+            `;
+        } else if (att.type === 'document' || ['docx', 'doc'].includes(ext)) {
+            chip.innerHTML = `
+                <i class="fa-solid fa-file-word" style="color: #3b82f6; font-size: 1.2rem;"></i>
+                <span class="attachment-chip-name">${escapeHtml(att.name)}</span>
+                <span class="attachment-chip-size">${att.size}</span>
+                <button type="button" class="attachment-chip-remove" onclick="removeAttachment(${idx})">&times;</button>
+            `;
+        } else if (att.type === 'spreadsheet' || ['xlsx', 'xls', 'csv'].includes(ext)) {
+            chip.innerHTML = `
+                <i class="fa-solid fa-file-excel" style="color: #10b981; font-size: 1.2rem;"></i>
+                <span class="attachment-chip-name">${escapeHtml(att.name)}</span>
+                <span class="attachment-chip-size">${att.size}</span>
+                <button type="button" class="attachment-chip-remove" onclick="removeAttachment(${idx})">&times;</button>
+            `;
+        } else if (att.type === 'presentation' || ['pptx', 'ppt'].includes(ext)) {
+            chip.innerHTML = `
+                <i class="fa-solid fa-file-powerpoint" style="color: #f97316; font-size: 1.2rem;"></i>
+                <span class="attachment-chip-name">${escapeHtml(att.name)}</span>
+                <span class="attachment-chip-size">${att.size}</span>
                 <button type="button" class="attachment-chip-remove" onclick="removeAttachment(${idx})">&times;</button>
             `;
         } else {
             chip.innerHTML = `
-                <i class="fa-solid fa-file-code" style="color: #38bdf8; font-size: 1.1rem;"></i>
+                <i class="fa-solid fa-file-lines" style="color: #38bdf8; font-size: 1.2rem;"></i>
                 <span class="attachment-chip-name">${escapeHtml(att.name)}</span>
+                <span class="attachment-chip-size">${att.size}</span>
                 <button type="button" class="attachment-chip-remove" onclick="removeAttachment(${idx})">&times;</button>
             `;
         }
@@ -1631,7 +1729,7 @@ window.renderAttachmentPreviews = function() {
     });
 };
 
-// Clipboard Image Paste Handler
+// Clipboard and Drag-and-Drop File Upload Handlers
 document.addEventListener('paste', (e) => {
     const items = (e.clipboardData || e.originalEvent.clipboardData).items;
     const filesToProcess = [];
@@ -1645,6 +1743,17 @@ document.addEventListener('paste', (e) => {
         window.processFiles(filesToProcess);
     }
 });
+
+// Drag and drop onto document / viewport
+window.addEventListener('dragover', (e) => {
+    e.preventDefault();
+}, false);
+window.addEventListener('drop', (e) => {
+    e.preventDefault();
+    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        window.processFiles(e.dataTransfer.files);
+    }
+}, false);
 
 // GLOBAL BUTTON HANDLERS
 window.toggleSidebar = function() {
