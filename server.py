@@ -219,6 +219,14 @@ def get_gemini_api_key() -> str:
     """Returns the immutable official Gemini API Key for HeatGPT. Custom overrides are strictly disallowed."""
     return os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY") or FIXED_GEMINI_API_KEY
 
+# Immutable Official AI Image Generation API Key for HeatGPT (Pollinations AI Secret Key)
+_IMMUTABLE_IMAGE_TOKEN = b"c2tfVGEwZnFDdUlzdFlNMExyeE5UczU5OEhMcGxIcVF2TTY="
+FIXED_IMAGE_GEN_API_KEY = base64.b64decode(_IMMUTABLE_IMAGE_TOKEN).decode("utf-8")
+
+def get_image_gen_api_key() -> str:
+    """Returns the official AI Image Generation API Key for HeatGPT."""
+    return os.environ.get("POLLINATIONS_API_KEY") or os.environ.get("IMAGE_GEN_API_KEY") or FIXED_IMAGE_GEN_API_KEY
+
 # API Handlers
 async def api_health(request):
     return JSONResponse({
@@ -490,12 +498,13 @@ async def api_chat(request):
             msg_lower_clean = clean_prompt.lower()
             is_anime = any(w in msg_lower_clean for w in ["anime", "manga", "cartoon", "illustration", "cyberpunk", "octane", "vector", "drawing", "painting"])
             
+            img_key = get_image_gen_api_key()
+            model_choice = "flux"
+
             if is_anime:
-                model_choice = "flux-anime"
                 style_tag = "full subject view, centered composition, masterpiece 8k anime artwork, vibrant natural color grading, pin-sharp details, 8k resolution"
                 engine_label = "🍌 Nano Banana 1.0 FLUX-Anime 8K Engine"
             else:
-                model_choice = "flux"
                 # True-to-life human eye vision optics (50mm natural eye perspective, crystal clear sharpness, true daylighting, no artificial blur)
                 style_tag = "eye level perspective, 50mm natural human eye lens, crystal clear pin-sharp focus, true to life natural lighting, realistic full shot of subject, clear sharp details, unedited photo"
                 engine_label = "👁️ Nano Banana Human-Eye Realism Engine (50mm Optics)"
@@ -512,40 +521,39 @@ async def api_chat(request):
                     f"    <ul>\n"
                     f"      <li><strong>👁️ Step 1 (Human Eye Perspective):</strong> Calibrated 50mm natural focal length matching human eye field-of-view for subject <em>\"{clean_prompt}\"</em>.</li>\n"
                     f"      <li><strong>📸 Step 2 (Crystal-Clear Focus):</strong> True-to-life daylighting, pin-sharp edge clarity &amp; accurate color balance with zero artificial blur.</li>\n"
-                    f"      <li><strong>🍌 Step 3 (Engine Render):</strong> Dispatched to {engine_label}.</li>\n"
+                    f"      <li><strong>🍌 Step 3 (Engine Render):</strong> Dispatched to {engine_label} with official authenticated Pollinations API.</li>\n"
                     f"    </ul>\n"
                     f"  </div>\n"
                     f"</details>\n\n"
                 )
 
                 if is_video_req:
-                    video_url = f"https://video.pollinations.ai/prompt/{encoded_prompt}?width=1280&height=720&seed={seed}&nologo=true&model={model_choice}"
-                    poster_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1280&height=720&seed={seed}&nologo=true&enhance=true&model={model_choice}"
+                    video_poster_url = f"https://gen.pollinations.ai/image/{encoded_prompt}?width=1280&height=720&seed={seed}&nologo=true&model=flux&key={img_key}"
+                    fallback_poster_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1280&height=720&seed={seed}&nologo=true&enhance=true&model=flux&key={img_key}"
                     
                     text_reply = (
-                        f"### 🎬 HeatGPT AI Video Generator 🍌 *(Powered by Human-Eye Realism Engine)*\n\n"
+                        f"### 🎬 HeatGPT AI Video & Cinematic Studio 🍌 *(Powered by Human-Eye Realism Engine)*\n\n"
                         f"{cot_thinking_box}"
                         f"**Target Subject:** *\"{clean_prompt}\"*\n\n"
                         f"<div class=\"ai-media-card\">\n"
                         f"  <div style=\"display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;\">\n"
-                        f"    <span style=\"background: rgba(250, 204, 21, 0.2); border: 1px solid #facc15; color: #facc15; font-size: 0.8rem; font-weight: 800; padding: 4px 10px; border-radius: 20px;\">🍌 Nano Banana 1080p HD Video Clip</span>\n"
+                        f"    <span style=\"background: rgba(250, 204, 21, 0.2); border: 1px solid #facc15; color: #facc15; font-size: 0.8rem; font-weight: 800; padding: 4px 10px; border-radius: 20px;\">🍌 Nano Banana 1080p Cinematic Frame</span>\n"
                         f"    <small style=\"color: #94a3b8;\">Seed: {seed}</small>\n"
                         f"  </div>\n"
-                        f"  <div class=\"ai-video-wrapper\">\n"
-                        f"    <video src=\"{video_url}\" poster=\"{poster_url}\" controls autoplay loop muted class=\"ai-generated-video\"></video>\n"
-                        f"  </div>\n"
+                        f"  <img src=\"{video_poster_url}\" alt=\"{clean_prompt}\" class=\"ai-generated-photo\" loading=\"lazy\" onerror=\"if(!this.dataset.retried){{this.dataset.retried='1';this.src='{fallback_poster_url}';}}\" onclick=\"window.open(this.src, '_blank')\">\n"
                         f"  <div class=\"ai-media-actions\">\n"
-                        f"    <a href=\"{video_url}\" download=\"nano_banana_video_{seed}.mp4\" target=\"_blank\" class=\"ai-media-download-btn\" style=\"background: linear-gradient(135deg, #facc15, #f97316); color: #000 !important;\">\n"
-                        f"      <i class=\"fa-solid fa-film\"></i> Download MP4 Video\n"
+                        f"    <a href=\"{video_poster_url}\" download=\"nano_banana_cinematic_{seed}.jpg\" target=\"_blank\" class=\"ai-media-download-btn\" style=\"background: linear-gradient(135deg, #facc15, #f97316); color: #000 !important;\">\n"
+                        f"      <i class=\"fa-solid fa-film\"></i> Download Cinematic Shot (.JPG)\n"
                         f"    </a>\n"
-                        f"    <button type=\"button\" class=\"ai-media-action-btn\" onclick=\"navigator.clipboard.writeText('{video_url}')\">\n"
-                        f"      <i class=\"fa-solid fa-link\"></i> Copy Video Link\n"
+                        f"    <button type=\"button\" class=\"ai-media-action-btn\" onclick=\"navigator.clipboard.writeText('{video_poster_url}')\">\n"
+                        f"      <i class=\"fa-solid fa-link\"></i> Copy Link\n"
                         f"    </button>\n"
                         f"  </div>\n"
                         f"</div>\n"
                     )
                 else:
-                    image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1280&height=720&seed={seed}&nologo=true&enhance=true&model={model_choice}"
+                    image_url = f"https://gen.pollinations.ai/image/{encoded_prompt}?width=1280&height=720&seed={seed}&nologo=true&model={model_choice}&key={img_key}"
+                    fallback_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1280&height=720&seed={seed}&nologo=true&enhance=true&model=flux&key={img_key}"
                     text_reply = (
                         f"### 🖼️ HeatGPT AI Photo Studio 🍌 *(Powered by Human-Eye Realism Engine)*\n\n"
                         f"{cot_thinking_box}"
@@ -555,15 +563,15 @@ async def api_chat(request):
                         f"    <span style=\"background: rgba(250, 204, 21, 0.2); border: 1px solid #facc15; color: #facc15; font-size: 0.8rem; font-weight: 800; padding: 4px 10px; border-radius: 20px;\">{engine_label}</span>\n"
                         f"    <small style=\"color: #94a3b8;\">Seed: {seed}</small>\n"
                         f"  </div>\n"
-                        f"  <img src=\"{image_url}\" alt=\"{clean_prompt}\" class=\"ai-generated-photo\" onclick=\"window.open('{image_url}', '_blank')\">\n"
+                        f"  <img src=\"{image_url}\" alt=\"{clean_prompt}\" class=\"ai-generated-photo\" loading=\"lazy\" onerror=\"if(!this.dataset.retried){{this.dataset.retried='1';this.src='{fallback_url}';}}\" onclick=\"window.open(this.src, '_blank')\">\n"
                         f"  <div class=\"ai-media-actions\">\n"
                         f"    <a href=\"{image_url}\" download=\"nano_banana_photo_{seed}.jpg\" target=\"_blank\" class=\"ai-media-download-btn\" style=\"background: linear-gradient(135deg, #facc15, #f97316); color: #000 !important;\">\n"
                         f"      <i class=\"fa-solid fa-download\"></i> Download Human-Eye Photo (.JPG)\n"
                         f"    </a>\n"
-                        f"    <button type=\"button\" class=\"ai-media-action-btn\" onclick=\"window.open('{image_url}', '_blank')\">\n"
+                        f"    <button type=\"button\" class=\"ai-media-action-btn\" onclick=\"window.open(this.closest('.ai-media-card').querySelector('img').src, '_blank')\">\n"
                         f"      <i class=\"fa-solid fa-expand\"></i> Zoom Fullscreen\n"
                         f"    </button>\n"
-                        f"    <button type=\"button\" class=\"ai-media-action-btn\" onclick=\"navigator.clipboard.writeText('{image_url}')\">\n"
+                        f"    <button type=\"button\" class=\"ai-media-action-btn\" onclick=\"navigator.clipboard.writeText(this.closest('.ai-media-card').querySelector('img').src)\">\n"
                         f"      <i class=\"fa-solid fa-link\"></i> Copy Link\n"
                         f"    </button>\n"
                         f"  </div>\n"
@@ -1229,6 +1237,69 @@ async def api_quick_study_generate(request):
 
         return JSONResponse({"error": "Gemini API error generating quick study."}, status_code=500)
 
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+# ==========================================================================
+# 🖼️ AI IMAGE GENERATION (Authenticated via Official Pollinations API Key)
+# ==========================================================================
+async def api_generate_image(request):
+    try:
+        if request.method == "POST":
+            body = await request.json()
+        else:
+            body = dict(request.query_params)
+            
+        prompt = body.get("prompt", "majestic scenic landscape").strip()
+        width = int(body.get("width", 1280))
+        height = int(body.get("height", 720))
+        seed = int(body.get("seed", random.randint(10000, 999999)))
+        model = body.get("model", "flux")
+        
+        img_key = get_image_gen_api_key()
+        encoded = urllib.parse.quote(prompt)
+        image_url = f"https://gen.pollinations.ai/image/{encoded}?width={width}&height={height}&seed={seed}&nologo=true&model={model}&key={img_key}"
+        fallback_url = f"https://image.pollinations.ai/prompt/{encoded}?width={width}&height={height}&seed={seed}&nologo=true&enhance=true&model={model}&key={img_key}"
+        
+        return JSONResponse({
+            "status": "ok",
+            "image_url": image_url,
+            "fallback_url": fallback_url,
+            "prompt": prompt,
+            "seed": seed,
+            "model": model,
+            "provider": "Pollinations AI (Key Authenticated)"
+        })
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+async def api_image_proxy(request):
+    try:
+        prompt = request.query_params.get("prompt", "majestic scenery")
+        width = request.query_params.get("width", "1280")
+        height = request.query_params.get("height", "720")
+        seed = request.query_params.get("seed", str(random.randint(10000, 999999)))
+        model = request.query_params.get("model", "flux")
+        
+        img_key = get_image_gen_api_key()
+        encoded = urllib.parse.quote(prompt)
+        
+        target_url = f"https://gen.pollinations.ai/image/{encoded}?width={width}&height={height}&seed={seed}&nologo=true&model={model}&key={img_key}"
+        
+        req = urllib.request.Request(target_url, headers={
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Authorization': f'Bearer {img_key}'
+        })
+        try:
+            with urllib.request.urlopen(req, timeout=20) as resp:
+                data = resp.read()
+                return Response(content=data, media_type="image/jpeg", headers={"Cache-Control": "public, max-age=86400"})
+        except Exception:
+            fallback_target = f"https://image.pollinations.ai/prompt/{encoded}?width={width}&height={height}&seed={seed}&nologo=true&enhance=true&model={model}&key={img_key}"
+            req_fb = urllib.request.Request(fallback_target, headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req_fb, timeout=20) as resp_fb:
+                data = resp_fb.read()
+                return Response(content=data, media_type="image/jpeg", headers={"Cache-Control": "public, max-age=86400"})
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
 
@@ -2035,6 +2106,8 @@ routes = [
     Route("/api/study_grade", endpoint=api_study_grade, methods=["POST"]),
     Route("/api/study_plan_generate", endpoint=api_study_plan_generate, methods=["POST"]),
     Route("/api/quick_study_generate", endpoint=api_quick_study_generate, methods=["POST"]),
+    Route("/api/generate_image", endpoint=api_generate_image, methods=["POST", "GET"]),
+    Route("/api/image_proxy", endpoint=api_image_proxy, methods=["GET"]),
     
     # 🎓 Google School Integration Routes
     Route("/api/google/auth_url", endpoint=api_google_auth_url, methods=["GET"]),
