@@ -423,6 +423,25 @@ async def api_chat(request):
         if acad_context:
             system_instruction += f"\n\n{acad_context}"
 
+        # 🌟 HIGH-DEFINITION STRUCTURAL & VISUAL FORMATTING INSTRUCTION
+        formatting_rules = (
+            "\n\n═══════════════════════════════════════════════════════════════════\n"
+            "🌟 ELITE ANSWER FORMATTING GUIDELINES (STRICTLY REQUIRED):\n"
+            "1. Clear Structural Hierarchy: Organize your answers with clear Markdown headers (`### 📌 Overview`, `### 💡 Core Breakdown`, `### ⚡ Key Takeaway`).\n"
+            "2. Ultra-Scannable Layout: Never output walls of dense text. Break answers into concise, high-impact paragraphs (2-3 sentences max).\n"
+            "3. Bold Keyword Leads: When writing bullet points or numbered steps, ALWAYS bold the core term first (e.g. `- **Concept:** Direct, clear explanation`).\n"
+            "4. Markdown Tables: Whenever comparing multiple concepts, options, features, or timelines, ALWAYS use a clean Markdown table.\n"
+            "5. GitHub Alert Callouts: Highlight essential tips, rules, or warnings using standard GitHub callouts:\n"
+            "   > [!TIP] Pro-Tip: ...\n"
+            "   > [!NOTE] Key Note: ...\n"
+            "   > [!WARNING] Common Pitfall: ...\n"
+            "6. Pristine Code Blocks: Always format code with explicit language tags (```python, ```javascript, ```html, etc.) and helpful inline comments.\n"
+            "7. Math & Science Notation: Format mathematical and scientific formulas using LaTeX (`$...$` for inline, `$$...$$` for display).\n"
+            "8. Crisp Summaries: End complex answers with a memorable 1-2 sentence takeaway or summary box.\n"
+            "═══════════════════════════════════════════════════════════════════"
+        )
+        system_instruction += formatting_rules
+
         api_key = get_gemini_api_key()
         candidate_models = ["gemini-3.5-flash", "gemini-3.6-flash", "gemini-3.7-flash"]
 

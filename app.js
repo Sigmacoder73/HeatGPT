@@ -37,11 +37,11 @@ window.voicePitch = parseFloat(localStorage.getItem('heatgpt_voice_pitch') || '1
 
 // PERSONA DEFINITIONS
 window.PERSONAS = {
-    study: "You are HeatGPT Study Buddy 📚🎓 — a super chill, friendly, supportive, and engaging study tutor & homework companion! Use fun emojis (📚, ✨, 🧠, 🚀, 💡, 😎, 🎯, 🔥), break down complex concepts into simple bite-sized explanations, use helpful memory tricks or practice questions, and encourage the user with positive, relaxed energy!",
-    default: "You are HeatGPT, an ultra-intelligent, super chill, friendly, and helpful AI assistant! Use a relaxed, engaging tone and plenty of fun expressive emojis (😎, ✨, 🔥, 🚀) to make chatting enjoyable!",
-    coder: "You are HeatGPT Software Specialist 💻 — an expert Senior Software Engineer.",
-    writer: "You are HeatGPT Creative Writer ✍️ — a master copywriter and creative content strategist.",
-    concise: "You are HeatGPT Analyst ⚡ — direct, concise, bulleted, and no-fluff answers!"
+    study: "You are HeatGPT Study Buddy 📚🎓 — a super chill, friendly, supportive, and engaging study tutor & homework companion! Use fun emojis (📚, ✨, 🧠, 🚀, 💡, 😎, 🎯, 🔥), organize lessons with clear headings, break down complex concepts into simple bite-sized explanations with bold keyword leads, use clean comparison tables or callout tips, and encourage the user with positive, relaxed energy!",
+    default: "You are HeatGPT, an ultra-intelligent, super chill, friendly, and helpful AI assistant! Use a relaxed, engaging tone, plenty of fun expressive emojis (😎, ✨, 🔥, 🚀), clear markdown headings, bold key terms, and neatly structured sections to make reading effortless!",
+    coder: "You are HeatGPT Software Specialist 💻 — an expert Senior Software Engineer. Always provide clean, production-grade code with explicit language tags, informative comments, clear architecture breakdowns, and edge-case warnings.",
+    writer: "You are HeatGPT Creative Writer ✍️ — a master copywriter and creative content strategist. Craft engaging, beautifully styled narratives and copy with crisp headings and high-impact hooks.",
+    concise: "You are HeatGPT Analyst ⚡ — direct, ultra-scannable, bulleted, and no-fluff answers with bold leads and clean tables!"
 };
 
 // ==========================================================================
@@ -57,23 +57,116 @@ window.escapeHtml = function(text) {
         .replace(/'/g, '&#039;');
 };
 
+window.copyCodeSnippet = function(button) {
+    if (!button) return;
+    const wrapper = button.closest('.code-block-wrapper');
+    if (!wrapper) return;
+    const codeEl = wrapper.querySelector('pre code');
+    if (!codeEl) return;
+
+    const textToCopy = codeEl.innerText || codeEl.textContent;
+    navigator.clipboard.writeText(textToCopy).then(() => {
+        const originalHtml = button.innerHTML;
+        button.classList.add('copied');
+        button.innerHTML = '<i class="fa-solid fa-check"></i> <span>Copied!</span>';
+        setTimeout(() => {
+            button.classList.remove('copied');
+            button.innerHTML = originalHtml;
+        }, 2200);
+    }).catch(err => {
+        console.error('Code copy failed:', err);
+    });
+};
+
+window.enhanceRenderedMessage = function(container) {
+    if (!container) return;
+
+    // Highlight Code Syntax with highlight.js
+    if (typeof hljs !== 'undefined') {
+        container.querySelectorAll('pre code').forEach(block => {
+            try {
+                if (!block.classList.contains('hljs')) {
+                    hljs.highlightElement(block);
+                }
+            } catch (e) {}
+        });
+    }
+
+    // Render KaTeX Math
+    if (typeof renderMathInElement !== 'undefined') {
+        try {
+            renderMathInElement(container, {
+                delimiters: [
+                    {left: '$$', right: '$$', display: true},
+                    {left: '$', right: '$', display: false},
+                    {left: '\\(', right: '\\)', display: false},
+                    {left: '\\[', right: '\\]', display: true}
+                ],
+                throwOnError: false
+            });
+        } catch (e) {}
+    }
+};
+
 window.parseMarkdown = function(rawText) {
     if (!rawText) return '';
     let parsed = rawText;
 
-    // Callout Transformers (> [!NOTE], > [!TIP], > [!IMPORTANT], > [!WARNING])
-    parsed = parsed.replace(/^>\s*\[!NOTE\]\s*(.*)$/gmi, '<div class="callout callout-note"><i class="fa-solid fa-circle-info"></i> <div>$1</div></div>');
-    parsed = parsed.replace(/^>\s*\[!TIP\]\s*(.*)$/gmi, '<div class="callout callout-tip"><i class="fa-solid fa-lightbulb"></i> <div>$1</div></div>');
-    parsed = parsed.replace(/^>\s*\[!IMPORTANT\]\s*(.*)$/gmi, '<div class="callout callout-important"><i class="fa-solid fa-triangle-exclamation"></i> <div>$1</div></div>');
-    parsed = parsed.replace(/^>\s*\[!WARNING\]\s*(.*)$/gmi, '<div class="callout callout-warning"><i class="fa-solid fa-fire"></i> <div>$1</div></div>');
+    // Callout Transformers (> [!NOTE], > [!TIP], > [!IMPORTANT], > [!WARNING], > [!CAUTION])
+    parsed = parsed.replace(/^>\s*\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]\s*([^\n]*)((?:\n>\s*.*)*)/gmi, function(match, type, title, bodyLines) {
+        const typeLower = type.toLowerCase();
+        let icon = 'fa-circle-info';
+        if (typeLower === 'tip') icon = 'fa-lightbulb';
+        else if (typeLower === 'important') icon = 'fa-circle-exclamation';
+        else if (typeLower === 'warning') icon = 'fa-triangle-exclamation';
+        else if (typeLower === 'caution') icon = 'fa-shield-halved';
+
+        let cleanBody = '';
+        if (title && title.trim()) cleanBody += title.trim() + '\n';
+        if (bodyLines) {
+            cleanBody += bodyLines.replace(/^\n?>\s?/gm, '\n').trim();
+        }
+
+        return `\n<div class="callout-card callout-${typeLower}">\n<div class="callout-header"><i class="fa-solid ${icon}"></i> ${type.toUpperCase()}</div>\n<div class="callout-body">\n\n${cleanBody.trim()}\n\n</div>\n</div>\n`;
+    });
 
     if (typeof marked !== 'undefined') {
         try {
+            if (!window._markedConfigured) {
+                marked.setOptions({
+                    gfm: true,
+                    breaks: true,
+                    headerIds: false,
+                    mangle: false
+                });
+                window._markedConfigured = true;
+            }
             parsed = marked.parse(parsed);
         } catch (e) {
             console.error("Marked parse error:", e);
         }
     }
+
+    // Wrap tables in responsive container if not already wrapped
+    parsed = parsed.replace(/(<table[\s\S]*?<\/table>)/gi, function(match) {
+        return `<div class="table-responsive">${match}</div>`;
+    });
+
+    // Wrap code blocks in styled container with language tag and copy button
+    parsed = parsed.replace(/<pre><code(?:\s+class="language-([a-zA-Z0-9_\-]+)")?>([\s\S]*?)<\/code><\/pre>/gi, function(match, lang, codeContent) {
+        const displayLang = (lang || 'code').toUpperCase();
+        return `
+        <div class="code-block-wrapper">
+            <div class="code-block-header">
+                <span class="code-lang-label"><i class="fa-solid fa-code"></i> ${displayLang}</span>
+                <button type="button" class="copy-code-btn" onclick="window.copyCodeSnippet(this)">
+                    <i class="fa-regular fa-copy"></i> <span>Copy</span>
+                </button>
+            </div>
+            <pre><code class="${lang ? 'language-' + lang : ''}">${codeContent}</code></pre>
+        </div>`;
+    });
+
     return parsed;
 };
 
@@ -197,8 +290,9 @@ window.appendMessageBubble = function(role, content, attachments = [], isStreami
     if (welcome) welcome.style.display = 'none';
     feed.style.display = 'flex';
 
+    const isBot = role !== 'user';
     const msgDiv = document.createElement('div');
-    msgDiv.className = `message-row ${role === 'user' ? 'user-row' : 'bot-row'}`;
+    msgDiv.className = `message-row ${isBot ? 'assistant bot bot-row' : 'user user-row'}`;
 
     let attachmentsHtml = '';
     if (attachments && attachments.length > 0) {
@@ -222,15 +316,13 @@ window.appendMessageBubble = function(role, content, attachments = [], isStreami
         attachmentsHtml += '</div>';
     }
 
-    const isBot = role !== 'user';
-
     msgDiv.innerHTML = `
-        <div class="message-avatar ${isBot ? 'bot-avatar' : 'user-avatar-small'}">
+        <div class="message-avatar ${isBot ? 'assistant-avatar bot-avatar' : 'user-avatar user-avatar-small'}">
             ${isBot ? '<i class="fa-solid fa-fire-flame-curved"></i>' : 'H'}
         </div>
-        <div class="message-bubble-card">
+        <div class="message-content-box message-bubble-card">
             ${attachmentsHtml}
-            <div class="message-text-content">${isBot ? window.parseMarkdown(content) : escapeHtml(content)}</div>
+            <div class="message-text message-text-content">${isBot ? window.parseMarkdown(content) : escapeHtml(content)}</div>
             ${isBot ? `
                 <div class="message-action-toolbar">
                     <button type="button" class="msg-action-btn" onclick="speakText(this.closest('.message-bubble-card').querySelector('.message-text-content').innerText, this.querySelector('i'))" title="Read Aloud Voice">
@@ -246,23 +338,8 @@ window.appendMessageBubble = function(role, content, attachments = [], isStreami
 
     feed.appendChild(msgDiv);
     
-    // Highlight Code Syntax
-    if (typeof hljs !== 'undefined') {
-        msgDiv.querySelectorAll('pre code').forEach(block => hljs.highlightElement(block));
-    }
-    
-    // Render KaTeX Math
-    if (typeof renderMathInElement !== 'undefined') {
-        try {
-            renderMathInElement(msgDiv, {
-                delimiters: [
-                    {left: '$$', right: '$$', display: true},
-                    {left: '$', right: '$', display: false},
-                    {left: '\\(', right: '\\)', display: false},
-                    {left: '\\[', right: '\\]', display: true}
-                ]
-            });
-        } catch (e) {}
+    if (!isStreaming) {
+        window.enhanceRenderedMessage(msgDiv);
     }
 
     const viewport = document.getElementById('chatViewport');
@@ -314,12 +391,13 @@ window.sendMessage = async function() {
     const isMedia = text.toLowerCase().includes('photo') || text.toLowerCase().includes('image') || text.toLowerCase().includes('video') || text.toLowerCase().includes('draw') || text.toLowerCase().includes('picture') || text.toLowerCase().includes('paint');
     if (contentEl) {
         contentEl.innerHTML = `
-            <div class="ai-generating-loader">
-                <div class="ai-spinner-ring"></div>
-                <div class="ai-generating-text">
-                    <span>${isMedia ? 'Gemini AI is generating your FLUX 8K visual...' : 'Gemini AI is analyzing & generating response...'}</span>
-                    <small>${isMedia ? 'Synthesizing 8K ray tracing, camera composition & rendering HD media ✨' : 'Reasoning with Gemini CoT & formatting response ✨'}</small>
+            <div class="typing-indicator-wrap">
+                <div class="typing-dots-pill">
+                    <span class="typing-dot"></span>
+                    <span class="typing-dot"></span>
+                    <span class="typing-dot"></span>
                 </div>
+                <span class="typing-status-label">${isMedia ? 'HeatGPT is creating your visual...' : 'HeatGPT is thinking...'}</span>
             </div>
         `;
     }
@@ -357,8 +435,7 @@ window.sendMessage = async function() {
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let fullBotResponse = '';
-
-        if (contentEl) contentEl.innerHTML = '';
+        let hasStartedStreaming = false;
 
         while (true) {
             const { done, value } = await reader.read();
@@ -374,14 +451,34 @@ window.sendMessage = async function() {
                     try {
                         const parsedData = JSON.parse(jsonStr);
                         if (parsedData.text) {
+                            if (!hasStartedStreaming && contentEl) {
+                                contentEl.innerHTML = '';
+                                hasStartedStreaming = true;
+                            }
                             fullBotResponse += parsedData.text;
                             if (contentEl) {
-                                contentEl.innerHTML = window.parseMarkdown(fullBotResponse);
+                                contentEl.innerHTML = window.parseMarkdown(fullBotResponse) + `
+                                    <span class="stream-cursor-dots" title="HeatGPT is responding...">
+                                        <span class="sdot"></span>
+                                        <span class="sdot"></span>
+                                        <span class="sdot"></span>
+                                    </span>
+                                `;
                             }
+                            const viewport = document.getElementById('chatViewport');
+                            if (viewport) viewport.scrollTop = viewport.scrollHeight;
                         }
                     } catch (e) {}
                 }
             }
+        }
+
+        // Finalize response: remove dots and apply full highlight + math rendering
+        if (contentEl) {
+            contentEl.innerHTML = window.parseMarkdown(fullBotResponse);
+            window.enhanceRenderedMessage(botMsgDiv);
+            const viewport = document.getElementById('chatViewport');
+            if (viewport) viewport.scrollTop = viewport.scrollHeight;
         }
 
         // Save complete response
