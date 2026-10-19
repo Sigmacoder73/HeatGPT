@@ -910,6 +910,49 @@ async def api_podcast_download_mp3(request):
         print(f"api_podcast_download_mp3 exception: {e}")
         return JSONResponse({"error": str(e)}, status_code=500)
 
+# Robust JSON Extractor for Gemini AI structured responses
+def _extract_json_data(raw_text: str, expect_array: bool = False):
+    if not raw_text:
+        return None
+    raw = raw_text.strip()
+    try:
+        return json.loads(raw)
+    except Exception:
+        pass
+
+    # Extract markdown code fence content
+    code_match = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", raw, re.IGNORECASE)
+    if code_match:
+        try:
+            return json.loads(code_match.group(1).strip())
+        except Exception:
+            pass
+
+    # Extract bracket range
+    primary_pat = r"\[[\s\S]*\]" if expect_array else r"\{[\s\S]*\}"
+    fallback_pat = r"\{[\s\S]*\}" if expect_array else r"\[[\s\S]*\]"
+
+    m = re.search(primary_pat, raw)
+    if m:
+        try:
+            return json.loads(m.group(0).strip())
+        except Exception:
+            pass
+
+    m2 = re.search(fallback_pat, raw)
+    if m2:
+        try:
+            return json.loads(m2.group(0).strip())
+        except Exception:
+            pass
+
+    cleaned = re.sub(r"^```(?:json)?", "", raw, flags=re.MULTILINE)
+    cleaned = re.sub(r"```$", "", cleaned, flags=re.MULTILINE).strip()
+    try:
+        return json.loads(cleaned)
+    except Exception:
+        return None
+
 # JSON Endpoint for Gemini Powered Study & Quiz Generator
 async def api_study_generate(request):
     try:
@@ -918,10 +961,11 @@ async def api_study_generate(request):
         topic = body.get("topic", "General Science").strip() or "General Knowledge & Science"
         difficulty = body.get("difficulty", "Intermediate")
         image_data = body.get("image_data", "").strip()
-        req_model = body.get("model", "gemini-3.5-flash")
+        req_model = body.get("model", "gemini-3.8-flash")
         api_key = get_gemini_api_key()
 
-        candidate_models = ["gemini-3.5-flash", "gemini-3.6-flash", "gemini-3.7-flash"]
+        raw_models = ["gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.5-flash", "gemini-3.6-flash", req_model]
+        candidate_models = list(dict.fromkeys([m for m in raw_models if m and not m.startswith("gemini-2.")]))
 
         from google import genai
         from google.genai import types
@@ -967,7 +1011,7 @@ async def api_study_generate(request):
                 f"If a document, PDF, textbook page, diagram, or notes are attached, inspect the full contents carefully and generate quiz questions based on the document/notes contents!\n\n"
                 f"Respond ONLY with valid JSON in this exact structure without markdown code blocks:\n"
                 f"{{\n"
-                f'  "mcqs": [{{"id": 1, "question": "MCQ Question 1?", "options": ["Option A", "Option B", "Option C", "Option D"], "correct": "Option A exact text", "explanation": "Why Option A is correct"}}],\n'
+                f'  "mcqs": [{{"id": 1, "question": "MCQ Question 1?", "options": ["Option A", "Option B", "Option C", "Option D"], "correct": "Option A", "explanation": "Why Option A is correct"}}],\n'
                 f'  "fill_blanks": [{{"id": 1, "question": "Sentence with ______ blank.", "correct": "Missing word"}}],\n'
                 f'  "short_questions": [{{"id": 1, "question": "Short Question?", "sample_answer": "Key solution points"}}],\n'
                 f'  "long_questions": [{{"id": 1, "question": "Long Essay Question?", "key_concepts": ["Concept 1", "Concept 2"]}}]\n'
@@ -985,11 +1029,15 @@ async def api_study_generate(request):
                     contents=contents,
                     config=types.GenerateContentConfig(temperature=0.6)
                 )
-                raw_text = response.text.strip()
-                raw_text = re.sub(r"^```json\s*", "", raw_text, flags=re.MULTILINE)
-                raw_text = re.sub(r"^```\s*", "", raw_text, flags=re.MULTILINE)
-                data = json.loads(raw_text.strip())
-                return JSONResponse({"status": "ok", "data": data, "model": model})
+                data = _extract_json_data(response.text, expect_array=(tool_type == "flashcards"))
+                if data is not None:
+                    if isinstance(data, dict):
+                        if tool_type != "flashcards" and "mcqs" not in data:
+                            if "quiz" in data and isinstance(data["quiz"], dict):
+                                data = data["quiz"]
+                            elif "data" in data and isinstance(data["data"], dict):
+                                data = data["data"]
+                    return JSONResponse({"status": "ok", "data": data, "model": model})
             except Exception as ex:
                 print(f"Study Gen error with model {model}: {ex}")
                 continue
@@ -1004,7 +1052,7 @@ async def api_study_generate(request):
 async def api_study_grade(request):
     try:
         body = await request.json()
-        req_model = body.get("model", "gemini-3.5-flash")
+        req_model = body.get("model", "gemini-3.8-flash")
         api_key = get_gemini_api_key()
 
         user_answers = body.get("answers", {})
@@ -1022,16 +1070,19 @@ async def api_study_grade(request):
         from google import genai
         from google.genai import types
         client = genai.Client(api_key=api_key)
-        candidate_models = ["gemini-3.5-flash", "gemini-3.6-flash", "gemini-3.7-flash"]
+        raw_models = ["gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.5-flash", "gemini-3.6-flash", req_model]
+        candidate_models = list(dict.fromkeys([m for m in raw_models if m and not m.startswith("gemini-2.")]))
 
         for model in candidate_models:
             try:
                 res = client.models.generate_content(model=model, contents=prompt)
-                raw_text = res.text.strip()
-                raw_text = re.sub(r"^```json\s*", "", raw_text, flags=re.MULTILINE)
-                raw_text = re.sub(r"^```\s*", "", raw_text, flags=re.MULTILINE)
-                return JSONResponse({"status": "ok", "report": json.loads(raw_text.strip()), "model": model})
+                report = _extract_json_data(res.text, expect_array=False)
+                if report is not None:
+                    if isinstance(report, dict) and "report" in report and isinstance(report["report"], dict):
+                        report = report["report"]
+                    return JSONResponse({"status": "ok", "report": report, "model": model})
             except Exception as ex:
+                print(f"Study Grade error with model {model}: {ex}")
                 continue
 
         return JSONResponse({"error": "Gemini API error grading quiz."}, status_code=500)

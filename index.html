@@ -33,7 +33,7 @@
     <link rel="apple-touch-icon" sizes="180x180" href="/favicon.png?v=2">
     
     <!-- Cache-busted Stylesheet -->
-    <link rel="stylesheet" href="styles.css?v=10002">
+    <link rel="stylesheet" href="styles.css?v=10005">
 </head>
 <body>
     <div class="app-layout">
@@ -717,10 +717,15 @@
                 <button type="button" class="modal-close" onclick="closeQuizPlayerModal()">&times;</button>
             </div>
 
-            <!-- Quiz Loading State -->
-            <div class="fc-loading-state" id="quizLoadingState">
-                <i class="fa-solid fa-spinner fa-spin" style="font-size: 2.5rem; color: #ef4444;"></i>
-                <p>Gemini AI is generating your custom quiz... 📝✨</p>
+            <!-- Quiz Loading State with Instant Launch Option -->
+            <div class="fc-loading-state" id="quizLoadingState" style="flex-direction: column; align-items: center; justify-content: center; padding: 25px; text-align: center;">
+                <i class="fa-solid fa-clipboard-question fa-bounce" style="font-size: 3rem; color: #ef4444; margin-bottom: 14px;"></i>
+                <h4 style="color: #f8fafc; font-size: 1.15rem; margin-bottom: 6px;">Gemini AI is Preparing Your Quiz...</h4>
+                <p style="color: #94a3b8; font-size: 0.9rem; max-width: 330px; line-height: 1.4; margin-bottom: 16px;">Crafting custom questions, options, answer keys, and grading rubrics 📝✨</p>
+                <div style="display: flex; gap: 10px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeQuizPlayerModal()" style="font-size: 0.85rem; padding: 7px 14px;">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="useInstantQuizFallback()" style="font-size: 0.85rem; padding: 7px 14px; background: linear-gradient(135deg, #ef4444, #f97316); border: none; box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4);">⚡ Instant Launch</button>
+                </div>
             </div>
 
             <!-- Quiz Questions Form -->
@@ -730,7 +735,7 @@
                 </div>
 
                 <div class="quiz-footer-actions">
-                    <button type="button" class="btn btn-primary btn-block" id="submitQuizForGradingBtn" onclick="submitQuizForGrading()" style="background: linear-gradient(135deg, #ef4444, #f97316); padding: 12px; font-size: 1rem;">
+                    <button type="button" class="btn btn-primary btn-block" id="submitQuizForGradingBtn" onclick="submitQuizForGrading()" style="background: linear-gradient(135deg, #ef4444, #f97316); padding: 12px; font-size: 1rem; border: none; box-shadow: 0 4px 16px rgba(239, 68, 68, 0.4);">
                         🎓 Submit Quiz for Gemini AI Grading & Report
                     </button>
                 </div>
@@ -746,9 +751,14 @@
                 <div class="report-details-feed" id="reportDetailsFeed">
                     <!-- Per-Question Detailed Feedback -->
                 </div>
-                <button type="button" class="btn btn-secondary btn-block" onclick="closeQuizPlayerModal()" style="margin-top: 14px;">
-                    🔄 Close Quiz Screen
-                </button>
+                <div style="display: flex; gap: 10px; margin-top: 14px;">
+                    <button type="button" class="btn btn-secondary flex-1" onclick="retakeCurrentQuiz()" style="padding: 10px; display: inline-flex; align-items: center; justify-content: center; gap: 8px;">
+                        <i class="fa-solid fa-rotate-left"></i> Retake Quiz
+                    </button>
+                    <button type="button" class="btn btn-primary flex-1" onclick="closeQuizPlayerModal()" style="padding: 10px; background: linear-gradient(135deg, #ef4444, #f97316); border: none; box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4);">
+                        <i class="fa-solid fa-check"></i> Close
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -1160,6 +1170,6 @@
     </div>
 
     <!-- Cache-busted Script -->
-    <script src="app.js?v=9999"></script>
+    <script src="app.js?v=10005"></script>
 </body>
 </html>
