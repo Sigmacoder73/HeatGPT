@@ -230,13 +230,13 @@ def resolve_gemini_model_chain(requested_model: str = "") -> list:
 
     if req:
         if req in ["gemini-4.5", "gemini-4.5-flash", "gemini-4.5-pro"]:
-            chain.extend(["gemini-4.5-flash", "gemini-4.5-pro", "gemini-4.5", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-flash-latest"])
+            chain.extend(["gemini-4.5-flash", "gemini-4.5-pro", "gemini-4.5", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.6-flash"])
         elif req in ["gemini-3.5", "gemini-3.5-flash"]:
-            chain.extend(["gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-flash-latest", "gemini-3.7-flash"])
+            chain.extend(["gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.6-flash", "gemini-flash-latest"])
         elif "4.5" in req:
-            chain.extend([req, "gemini-4.5-flash", "gemini-4.5-pro", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-flash-latest"])
+            chain.extend([req, "gemini-4.5-flash", "gemini-4.5-pro", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.6-flash"])
         elif "3.5" in req:
-            chain.extend([req, "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-flash-latest"])
+            chain.extend([req, "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.6-flash"])
         else:
             chain.append(req)
 
@@ -244,9 +244,9 @@ def resolve_gemini_model_chain(requested_model: str = "") -> list:
     chain.extend([
         "gemini-3.5-flash",
         "gemini-3.5-flash-lite",
-        "gemini-flash-latest",
-        "gemini-3.7-flash",
         "gemini-3.6-flash",
+        "gemini-3.7-flash",
+        "gemini-flash-latest",
         "gemini-pro-latest"
     ])
 
