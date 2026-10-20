@@ -1376,6 +1376,9 @@ window.generateFlashcards = async function() {
     if (subtitle) subtitle.innerText = `Gemini AI | Difficulty: ${difficulty} | ${count} Cards`;
 
     try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 16000);
+
         const res = await fetch('/api/study_generate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1384,13 +1387,20 @@ window.generateFlashcards = async function() {
                 topic, 
                 count, 
                 difficulty,
-                model: modelSelect ? modelSelect.value : 'gemini-2.5-flash'
-            })
+                model: modelSelect ? modelSelect.value : 'gemini-3.5-flash'
+            }),
+            signal: controller.signal
         });
+        clearTimeout(timeoutId);
 
         const json = await res.json();
-        if (json.status === 'ok' && Array.isArray(json.data) && json.data.length > 0) {
-            window.currentDeck = json.data;
+        let deck = json.data;
+        if (deck && typeof deck === 'object' && !Array.isArray(deck)) {
+            deck = deck.flashcards || deck.cards || deck.data || deck.deck || Object.values(deck).find(v => Array.isArray(v)) || [];
+        }
+
+        if (json.status === 'ok' && Array.isArray(deck) && deck.length > 0) {
+            window.currentDeck = deck;
         } else {
             window.currentDeck = [
                 { id: 1, question: `What is the core principle of ${topic}?`, answer: `${topic} involves fundamental mechanisms and key concepts for structured learning and practical application.`, hint: "Core Definition" },
@@ -1464,7 +1474,7 @@ window.generateQuiz = async function() {
                 difficulty,
                 image_data: window.quizBase64Image || '',
                 image_name: window.quizImageFileName || '',
-                model: modelSelect ? modelSelect.value : 'gemini-3.8-flash'
+                model: modelSelect ? modelSelect.value : 'gemini-3.5-flash'
             }),
             signal: controller.signal
         });
@@ -1862,7 +1872,7 @@ window.submitQuizForGrading = async function() {
                 type: 'quiz',
                 quiz_data: window.currentQuizData,
                 answers: studentAnswers,
-                model: modelSelect ? modelSelect.value : 'gemini-3.8-flash'
+                model: modelSelect ? modelSelect.value : 'gemini-3.5-flash'
             }),
             signal: controller.signal
         });

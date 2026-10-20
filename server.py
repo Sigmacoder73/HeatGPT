@@ -219,6 +219,45 @@ def get_gemini_api_key() -> str:
     """Returns the immutable official Gemini API Key for HeatGPT. Custom overrides are strictly disallowed."""
     return os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY") or FIXED_GEMINI_API_KEY
 
+def resolve_gemini_model_chain(requested_model: str = "") -> list:
+    """
+    Resolves any requested model name into a prioritized fallback list of models
+    supported by the official HeatGPT Gemini API key.
+    Seamlessly handles Gemini 3.5, 4.5, etc.
+    """
+    req = (requested_model or "").strip()
+    chain = []
+
+    if req:
+        if req in ["gemini-4.5", "gemini-4.5-flash", "gemini-4.5-pro"]:
+            chain.extend(["gemini-4.5-flash", "gemini-4.5-pro", "gemini-4.5", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-flash-latest"])
+        elif req in ["gemini-3.5", "gemini-3.5-flash"]:
+            chain.extend(["gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-flash-latest", "gemini-3.7-flash"])
+        elif "4.5" in req:
+            chain.extend([req, "gemini-4.5-flash", "gemini-4.5-pro", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-flash-latest"])
+        elif "3.5" in req:
+            chain.extend([req, "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-flash-latest"])
+        else:
+            chain.append(req)
+
+    # General fallback models verified available on the user's key (excluding quota-0 or rate-limited models)
+    chain.extend([
+        "gemini-3.5-flash",
+        "gemini-3.5-flash-lite",
+        "gemini-flash-latest",
+        "gemini-3.7-flash",
+        "gemini-3.6-flash",
+        "gemini-pro-latest"
+    ])
+
+    seen = set()
+    result = []
+    for m in chain:
+        if m and m not in seen and not m.startswith("gemini-2.") and m != "gemini-4-argon":
+            seen.add(m)
+            result.append(m)
+    return result
+
 # Immutable Official AI Image Generation API Key for HeatGPT (Pollinations AI Secret Key)
 _IMMUTABLE_IMAGE_TOKEN = b"c2tfVGEwZnFDdUlzdFlNMExyeE5UczU5OEhMcGxIcVF2TTY="
 FIXED_IMAGE_GEN_API_KEY = base64.b64decode(_IMMUTABLE_IMAGE_TOKEN).decode("utf-8")
@@ -451,7 +490,7 @@ async def api_chat(request):
         system_instruction += formatting_rules
 
         api_key = get_gemini_api_key()
-        candidate_models = ["gemini-3.5-flash", "gemini-3.6-flash", "gemini-3.7-flash"]
+        candidate_models = resolve_gemini_model_chain(req_model)
 
         last_user_msg = ""
         last_attachments = []
@@ -742,10 +781,7 @@ async def api_chat(request):
                 contents.append(types.Content(role=role, parts=parts))
 
             # Build prioritized candidate model list with user's selected model first
-            active_models = [req_model] if req_model else []
-            for m in ["gemini-3.5-flash", "gemini-3.6-flash", "gemini-3.7-flash", "gemini-2.5-flash"]:
-                if m not in active_models:
-                    active_models.append(m)
+            active_models = resolve_gemini_model_chain(req_model)
 
             last_err = None
             success = False
@@ -817,25 +853,34 @@ async def api_podcast_generate(request):
 
         async def fetch_gemini_podcast():
             loop = asyncio.get_event_loop()
-            def sync_gen():
-                res = client.models.generate_content(
-                    model=req_model,
-                    contents=prompt,
-                    config=types.GenerateContentConfig(temperature=0.7, max_output_tokens=1200)
-                )
-                return res.text
-            raw_text = await loop.run_in_executor(None, sync_gen)
-            raw_text = re.sub(r"^```json\s*", "", raw_text.strip(), flags=re.MULTILINE)
-            raw_text = re.sub(r"^```\s*", "", raw_text.strip(), flags=re.MULTILINE)
-            json_match = re.search(r'\{[\s\S]*\}', raw_text.strip())
-            if json_match:
-                raw_text = json_match.group(0)
-            return json.loads(raw_text)
+            candidate_models = resolve_gemini_model_chain(req_model)
+            for m in candidate_models:
+                try:
+                    def sync_gen(mod=m):
+                        res = client.models.generate_content(
+                            model=mod,
+                            contents=prompt,
+                            config=types.GenerateContentConfig(temperature=0.7, max_output_tokens=1200)
+                        )
+                        return res.text
+                    raw_text = await loop.run_in_executor(None, sync_gen)
+                    raw_text = re.sub(r"^```json\s*", "", raw_text.strip(), flags=re.MULTILINE)
+                    raw_text = re.sub(r"^```\s*", "", raw_text.strip(), flags=re.MULTILINE)
+                    json_match = re.search(r'\{[\s\S]*\}', raw_text.strip())
+                    if json_match:
+                        raw_text = json_match.group(0)
+                    data = json.loads(raw_text)
+                    if "transcript" in data and len(data["transcript"]) > 0:
+                        return data, m
+                except Exception as p_err:
+                    print(f"Podcast gen error with {m}: {p_err}")
+                    continue
+            return None, None
 
         try:
-            podcast_data = await asyncio.wait_for(fetch_gemini_podcast(), timeout=4.5)
-            if "transcript" in podcast_data and len(podcast_data["transcript"]) > 0:
-                return JSONResponse({"status": "ok", "podcast": podcast_data, "model": req_model})
+            podcast_data, used_model = await asyncio.wait_for(fetch_gemini_podcast(), timeout=6.0)
+            if podcast_data and "transcript" in podcast_data and len(podcast_data["transcript"]) > 0:
+                return JSONResponse({"status": "ok", "podcast": podcast_data, "model": used_model})
         except Exception as fast_err:
             print(f"Gemini fast timeout / fallback: {fast_err}")
 
@@ -969,11 +1014,9 @@ async def api_study_generate(request):
         topic = body.get("topic", "General Science").strip() or "General Knowledge & Science"
         difficulty = body.get("difficulty", "Intermediate")
         image_data = body.get("image_data", "").strip()
-        req_model = body.get("model", "gemini-3.8-flash")
+        req_model = body.get("model", "gemini-3.5-flash")
         api_key = get_gemini_api_key()
-
-        raw_models = ["gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.5-flash", "gemini-3.6-flash", req_model]
-        candidate_models = list(dict.fromkeys([m for m in raw_models if m and not m.startswith("gemini-2.")]))
+        candidate_models = resolve_gemini_model_chain(req_model)
 
         from google import genai
         from google.genai import types
@@ -1039,12 +1082,24 @@ async def api_study_generate(request):
                 )
                 data = _extract_json_data(response.text, expect_array=(tool_type == "flashcards"))
                 if data is not None:
-                    if isinstance(data, dict):
-                        if tool_type != "flashcards" and "mcqs" not in data:
-                            if "quiz" in data and isinstance(data["quiz"], dict):
-                                data = data["quiz"]
-                            elif "data" in data and isinstance(data["data"], dict):
-                                data = data["data"]
+                    if tool_type == "flashcards":
+                        if isinstance(data, dict):
+                            for k in ["flashcards", "cards", "data", "deck"]:
+                                if k in data and isinstance(data[k], list):
+                                    data = data[k]
+                                    break
+                            else:
+                                for v in data.values():
+                                    if isinstance(v, list):
+                                        data = v
+                                        break
+                    else:
+                        if isinstance(data, dict):
+                            if "mcqs" not in data:
+                                if "quiz" in data and isinstance(data["quiz"], dict):
+                                    data = data["quiz"]
+                                elif "data" in data and isinstance(data["data"], dict):
+                                    data = data["data"]
                     return JSONResponse({"status": "ok", "data": data, "model": model})
             except Exception as ex:
                 print(f"Study Gen error with model {model}: {ex}")
@@ -1078,8 +1133,7 @@ async def api_study_grade(request):
         from google import genai
         from google.genai import types
         client = genai.Client(api_key=api_key)
-        raw_models = ["gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.5-flash", "gemini-3.6-flash", req_model]
-        candidate_models = list(dict.fromkeys([m for m in raw_models if m and not m.startswith("gemini-2.")]))
+        candidate_models = resolve_gemini_model_chain(req_model)
 
         for model in candidate_models:
             try:
@@ -1169,7 +1223,7 @@ async def api_study_plan_generate(request):
         from google import genai
         from google.genai import types
         client = genai.Client(api_key=api_key)
-        candidate_models = ["gemini-3.5-flash", "gemini-3.6-flash", "gemini-3.7-flash"]
+        candidate_models = resolve_gemini_model_chain(req_model)
 
         for model in candidate_models:
             try:
@@ -1195,7 +1249,7 @@ async def api_quick_study_generate(request):
         body = await request.json()
         duration_mins = int(body.get("duration_minutes", 10))
         topic = body.get("topic", "Active Topic").strip() or "General Concepts"
-        req_model = body.get("model", "gemini-2.5-flash")
+        req_model = body.get("model", "gemini-3.5-flash")
         api_key = get_gemini_api_key()
 
         prompt = (
@@ -1222,7 +1276,7 @@ async def api_quick_study_generate(request):
         from google import genai
         from google.genai import types
         client = genai.Client(api_key=api_key)
-        candidate_models = ["gemini-3.5-flash", "gemini-3.6-flash", "gemini-3.7-flash"]
+        candidate_models = resolve_gemini_model_chain(req_model)
 
         for model in candidate_models:
             try:
@@ -1972,7 +2026,7 @@ async def api_school_study_plan_generate(request):
 
         from google import genai
         client = genai.Client(api_key=api_key)
-        for model in ["gemini-3.5-flash", "gemini-3.6-flash", "gemini-3.7-flash"]:
+        for model in resolve_gemini_model_chain("gemini-3.5-flash"):
             try:
                 res = client.models.generate_content(model=model, contents=prompt)
                 raw_text = res.text.strip()
@@ -2020,7 +2074,7 @@ async def api_school_import_gcr_link(request):
         if api_key:
             from google import genai
             client = genai.Client(api_key=api_key)
-            for model in ["gemini-3.5-flash", "gemini-3.6-flash", "gemini-3.7-flash"]:
+            for model in resolve_gemini_model_chain("gemini-3.5-flash"):
                 try:
                     res = client.models.generate_content(model=model, contents=prompt)
                     raw_text = res.text.strip()
