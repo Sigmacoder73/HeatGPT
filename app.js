@@ -1377,7 +1377,7 @@ window.generateFlashcards = async function() {
 
     try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 16000);
+        const timeoutId = setTimeout(() => controller.abort(), 35000);
 
         const res = await fetch('/api/study_generate', {
             method: 'POST',
@@ -1403,9 +1403,9 @@ window.generateFlashcards = async function() {
             window.currentDeck = deck;
         } else {
             window.currentDeck = [
-                { id: 1, question: `What is the core principle of ${topic}?`, answer: `${topic} involves fundamental mechanisms and key concepts for structured learning and practical application.`, hint: "Core Definition" },
-                { id: 2, question: `Why is ${topic} important?`, answer: `Mastering ${topic} unlocks deep analytical understanding and practical problem solving skills.`, hint: "Key Advantage" },
-                { id: 3, question: `How do you apply ${topic} effectively?`, answer: `By practicing active recall, studying real-world examples, and building hands-on mastery step-by-step.`, hint: "Practical Method" }
+                { id: 1, question: `What is the core scientific or conceptual definition of ${topic}?`, answer: `${topic} is defined by its foundational mechanisms, structural properties, and domain principles.`, hint: "Definition" },
+                { id: 2, question: `What is a primary governing mechanism or key law of ${topic}?`, answer: `The fundamental mechanism dictates how component elements interact to produce measurable, predictable outcomes.`, hint: "Core Mechanism" },
+                { id: 3, question: `How is ${topic} applied to solve concrete technical or analytical problems?`, answer: `By using its verified mathematical, structural, or empirical principles to analyze data and design solutions.`, hint: "Application" }
             ];
         }
 
@@ -1417,8 +1417,9 @@ window.generateFlashcards = async function() {
     } catch (e) {
         console.error("Error generating flashcards:", e);
         window.currentDeck = [
-            { id: 1, question: `What is the core definition of ${topic}?`, answer: `${topic} is a key field of study focusing on foundational rules and practical skills.`, hint: "Core Definition" },
-            { id: 2, question: `What are key applications of ${topic}?`, answer: `It is used across academic research, real-world projects, and problem solving.`, hint: "Application" }
+            { id: 1, question: `What is the core scientific or conceptual definition of ${topic}?`, answer: `${topic} is defined by its foundational mechanisms, structural properties, and domain principles.`, hint: "Definition" },
+            { id: 2, question: `What is a primary governing mechanism or key law of ${topic}?`, answer: `The fundamental mechanism dictates how component elements interact to produce measurable, predictable outcomes.`, hint: "Core Mechanism" },
+            { id: 3, question: `How is ${topic} applied to solve concrete technical or analytical problems?`, answer: `By using its verified mathematical, structural, or empirical principles to analyze data and design solutions.`, hint: "Application" }
         ];
         window.currentFcIndex = 0;
         if (loading) loading.style.display = 'none';
@@ -1459,7 +1460,7 @@ window.generateQuiz = async function() {
 
     try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 14000);
+        const timeoutId = setTimeout(() => controller.abort(), 45000);
 
         const res = await fetch('/api/study_generate', {
             method: 'POST',
@@ -1498,7 +1499,7 @@ window.generateQuiz = async function() {
         renderInteractiveQuizForm(window.currentQuizData);
 
     } catch (e) {
-        console.warn("Quiz generation timeout or network error, applying instant fallback:", e);
+        console.warn("Quiz generation timeout or network error, applying fallback:", e);
         window.currentQuizData = buildDefaultQuiz(topic, difficulty);
         if (loading) loading.style.display = 'none';
         if (body) body.style.display = 'flex';
@@ -1522,43 +1523,63 @@ function buildDefaultQuiz(topic, difficulty) {
         mcqs: [
             {
                 id: 1,
-                question: `What is the primary foundation and core objective when studying ${topic}?`,
-                options: ["Understanding fundamental principles and mechanisms", "Memorizing random trivia without practical context", "Skipping core concepts to take shortcuts", "Ignoring verified scientific evidence"],
-                correct: "Understanding fundamental principles and mechanisms",
-                explanation: "Foundational principles form the cornerstone of structured learning in this domain."
+                question: `What is the core scientific or academic definition of ${topic}?`,
+                options: [
+                    `The fundamental principles, properties, and governing mechanisms of ${topic}`,
+                    `An arbitrary subjective opinion with no verified academic evidence`,
+                    `A completely unrelated historical myth that has been abandoned`,
+                    `A collection of random trivia with no operational structure`
+                ],
+                correct: `The fundamental principles, properties, and governing mechanisms of ${topic}`,
+                explanation: `In standard educational curriculum, ${topic} is defined strictly by its operational properties and verifiable scientific mechanisms.`
             },
             {
                 id: 2,
-                question: `Which learning method yields the highest long-term retention in ${topic}?`,
-                options: ["Active recall and spaced problem solving", "Passive highlighted reading only once", "Cramming the night before an exam", "Avoiding error review and self-testing"],
-                correct: "Active recall and spaced problem solving",
-                explanation: "Cognitive science proves active recall and spaced practice dramatically outperform passive review."
+                question: `Which of the following is a primary governing rule or core mechanism in ${topic}?`,
+                options: [
+                    `The underlying operational laws, properties, and systemic interactions that govern ${topic}`,
+                    `Randomly fluctuating outcomes that cannot be measured or predicted`,
+                    `Eliminating all governing equations and boundary conditions`,
+                    `Assuming all variables behave identically under all conditions`
+                ],
+                correct: `The underlying operational laws, properties, and systemic interactions that govern ${topic}`,
+                explanation: `${topic} operates according to explicit, testable scientific or theoretical laws and interactions.`
             },
             {
                 id: 3,
-                question: `In practical real-world scenarios, how is knowledge of ${topic} primarily evaluated?`,
-                options: ["By applying theoretical concepts to solve novel challenges", "By reciting vocabulary word-for-word without understanding", "By avoiding analytical thinking", "By relying solely on assumptions"],
-                correct: "By applying theoretical concepts to solve novel challenges",
-                explanation: "Real-world competence requires synthesizing concepts to solve unscripted problems."
+                question: `When evaluating a direct problem involving ${topic}, what is the critical relationship to analyze?`,
+                options: [
+                    `The causal interaction between key inputs, systemic constraints, and measurable reactions in ${topic}`,
+                    `Ignoring all physical and theoretical boundary conditions`,
+                    `Assuming output is independent of input variables`,
+                    `Relying on guesswork instead of verified principles`
+                ],
+                correct: `The causal interaction between key inputs, systemic constraints, and measurable reactions in ${topic}`,
+                explanation: `Solving problems in ${topic} requires calculating the exact interactions between governing variables and boundary conditions.`
             },
             {
                 id: 4,
-                question: `Which approach best identifies knowledge gaps when mastering ${topic}?`,
-                options: ["Regular diagnostics and mock question testing", "Assuming full mastery after one lecture", "Ignoring difficult subtopics", "Never checking feedback on mistakes"],
-                correct: "Regular diagnostics and mock question testing",
-                explanation: "Targeted assessment quickly illuminates blind spots and focuses study efficiency."
+                question: `Which of the following represents an accurate real-world application or phenomenon governed by ${topic}?`,
+                options: [
+                    `Applying foundational ${topic} principles to engineer systems, solve complex calculations, and model real behavior`,
+                    `Treating ${topic} as purely hypothetical with zero practical applicability`,
+                    `Applying ${topic} only where empirical measurement is impossible`,
+                    `Using intuition instead of verified principles governed by ${topic}`
+                ],
+                correct: `Applying foundational ${topic} principles to engineer systems, solve complex calculations, and model real behavior`,
+                explanation: `${topic} is utilized across academic research and practical industries to analyze phenomena and design solutions.`
             }
         ],
         fill_blanks: [
-            { id: 1, question: `In the study of ${topic}, consistent ______ is essential for converting theoretical insight into problem-solving speed.`, correct: "practice" },
-            { id: 2, question: `Mastering foundational concepts enables students to perform ______ thinking when faced with complex scenarios.`, correct: "critical" }
+            { id: 1, question: `The fundamental operational framework of ${topic} is governed by verifiable ______ and structural properties.`, correct: "principles" },
+            { id: 2, question: `In formal analysis of ${topic}, solving problems requires evaluating governing variables and ______ conditions.`, correct: "boundary" }
         ],
         short_questions: [
-            { id: 1, question: `Explain the fundamental importance of ${topic} in modern science, technology, or academic study.`, sample_answer: `${topic} provides systematic analytical frameworks that help researchers and students solve complex real-world challenges.` },
-            { id: 2, question: `What are two common misconceptions students have when first learning ${topic}?`, sample_answer: `A common misconception is treating it as pure memorization rather than relational understanding, and underestimating regular practical application.` }
+            { id: 1, question: `State the primary mechanism and core function that distinguishes ${topic} in its academic domain.`, sample_answer: `${topic} is characterized by specific governing laws and structural relationships that dictate how its component elements interact and produce measurable outcomes.` },
+            { id: 2, question: `Identify two critical factors or variables that must be calculated or controlled when working with ${topic}.`, sample_answer: `Key factors include the governing parameters/forces and the environmental boundary conditions that determine the system's equilibrium or behavior.` }
         ],
         long_questions: [
-            { id: 1, question: `Provide a detailed synthesis of the core principles of ${topic}, including practical applications and best practices for mastery.`, key_concepts: ["Core Foundations", "Real-world Applications", "Analytical Problem Solving", "Continuous Iteration"] }
+            { id: 1, question: `Conduct a detailed academic analysis of ${topic}: describe its foundational mechanisms, explain how its core equations or rules operate, and illustrate with a concrete application.`, key_concepts: ["Foundational Mechanics", "Governing Relationships", "Real-World Application", "Analytical Precision"] }
         ]
     };
 }

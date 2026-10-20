@@ -1042,32 +1042,40 @@ async def api_study_generate(request):
         if tool_type == "flashcards":
             count = int(body.get("count", 5))
             prompt_text = (
-                f"You are Gemini HeatGPT Study Buddy 🧠📚.\n"
-                f"Generate exactly {count} distinct, authentic flashcards for topic: '{topic}' at difficulty level: '{difficulty}'.\n"
+                f"You are Gemini HeatGPT Master Study Coach 🧠📚.\n"
+                f"Generate exactly {count} distinct, authentic flashcards testing real domain knowledge for topic: '{topic}' at difficulty level: '{difficulty}'.\n"
                 f"If a document, PDF, textbook page, diagram, or notes are attached, inspect the full contents carefully and generate flashcards strictly based on its visual and text contents!\n\n"
-                f"Respond ONLY with valid JSON array without markdown formatting:\n"
+                f"MANDATORY REQUIREMENT: Every flashcard must test a specific real concept, factual definition, theorem, formula, date, or problem-solving mechanism of '{topic}'.\n"
+                f"FORBIDDEN: Do NOT ask vague meta questions about 'how do we learn it', 'study habits', 'learning retention', or 'why studying is useful'. Ask direct, substantive, educational questions!\n\n"
+                f"Respond ONLY with a valid JSON array without markdown formatting:\n"
                 f"[\n"
-                f'  {{"id": 1, "question": "Question text?", "answer": "Detailed answer definition", "hint": "Short clue"}}\n'
+                f'  {{"id": 1, "question": "Specific question about {topic}?", "answer": "Clear, precise factual answer definition", "hint": "Short clue"}}\n'
                 f"]"
             )
         else:
             mcq_count = int(body.get("mcqs", 4))
             fill_count = int(body.get("fill_blanks", 3))
-            short_count = int(body.get("short_questions", 3))
-            long_count = int(body.get("long_questions", 2))
+            short_count = int(body.get("short_questions", 2))
+            long_count = int(body.get("long_questions", 1))
             
             prompt_text = (
-                f"You are Gemini HeatGPT Exam Master 🎓.\n"
-                f"Generate a complete, highly detailed custom quiz for topic: '{topic}' at difficulty level: '{difficulty}'.\n"
-                f"If a document, PDF, textbook page, diagram, or notes are attached, inspect the full contents carefully and generate quiz questions based on the document/notes contents!\n\n"
+                f"You are Gemini HeatGPT Master Academic Examiner 🎓.\n"
+                f"Generate a rigorous, authentic examination paper testing real knowledge on topic: '{topic}' at difficulty level: '{difficulty}'.\n"
+                f"If a document, PDF, textbook page, diagram, or notes are attached, inspect the full contents carefully and generate questions strictly testing its factual content!\n\n"
+                f"CRITICAL CONTENT REQUIREMENTS:\n"
+                f"1. SUBSTANTIVE SUBJECT MATTER ONLY: Every single question must test concrete domain facts, scientific principles, formulas, definitions, dates, figures, equations, code, or analytical mechanisms of '{topic}'.\n"
+                f"2. ABSOLUTELY NO META-LEARNING QUESTIONS: NEVER ask questions about 'how to learn', 'how do we study it', 'study strategies', 'learning retention', 'active recall', or 'why is studying important'. Questions must be genuine test questions that appear on an official school or university exam for '{topic}'.\n"
+                f"3. MULTIPLE CHOICE ({mcq_count} questions): Provide 4 plausible options (A, B, C, D) where only one is factually correct, with a concise explanation.\n"
+                f"4. FILL IN THE BLANKS ({fill_count} questions): Provide a factual academic sentence where exactly one critical technical term or key phrase is replaced by '______'.\n"
+                f"5. SHORT QUESTIONS ({short_count} questions): Provide direct conceptual or calculation questions testing specific phenomena with a 1-2 sentence sample answer.\n"
+                f"6. ESSAY QUESTION ({long_count} question): Provide a comprehensive analytical exam prompt testing real mechanics, with 2-3 key concept keywords.\n\n"
                 f"Respond ONLY with valid JSON in this exact structure without markdown code blocks:\n"
                 f"{{\n"
-                f'  "mcqs": [{{"id": 1, "question": "MCQ Question 1?", "options": ["Option A", "Option B", "Option C", "Option D"], "correct": "Option A", "explanation": "Why Option A is correct"}}],\n'
-                f'  "fill_blanks": [{{"id": 1, "question": "Sentence with ______ blank.", "correct": "Missing word"}}],\n'
-                f'  "short_questions": [{{"id": 1, "question": "Short Question?", "sample_answer": "Key solution points"}}],\n'
-                f'  "long_questions": [{{"id": 1, "question": "Long Essay Question?", "key_concepts": ["Concept 1", "Concept 2"]}}]\n'
+                f'  "mcqs": [{{"id": 1, "question": "Specific factual question about {topic}?", "options": ["Option A", "Option B", "Option C", "Option D"], "correct": "Option A", "explanation": "Why Option A is factually correct"}}],\n'
+                f'  "fill_blanks": [{{"id": 1, "question": "Factual statement about {topic} with ______ blank.", "correct": "Missing term"}}],\n'
+                f'  "short_questions": [{{"id": 1, "question": "Direct question about {topic}?", "sample_answer": "Concise factual answer"}}],\n'
+                f'  "long_questions": [{{"id": 1, "question": "Detailed analytical question about {topic}?", "key_concepts": ["Concept 1", "Concept 2"]}}]\n'
                 f"}}\n"
-                f"Ensure mcqs has {mcq_count} items, fill_blanks has {fill_count} items, short_questions has {short_count} items, and long_questions has {long_count} items."
             )
 
         parts.append(types.Part.from_text(text=prompt_text))
@@ -1078,7 +1086,11 @@ async def api_study_generate(request):
                 response = client.models.generate_content(
                     model=model,
                     contents=contents,
-                    config=types.GenerateContentConfig(temperature=0.6)
+                    config=types.GenerateContentConfig(
+                        system_instruction="You are HeatGPT Exam Master. You create authentic academic examinations testing domain knowledge (facts, formulas, mechanisms, events, code, definitions) with zero fluff and no meta-learning questions.",
+                        temperature=0.4,
+                        max_output_tokens=3000
+                    )
                 )
                 data = _extract_json_data(response.text, expect_array=(tool_type == "flashcards"))
                 if data is not None:
